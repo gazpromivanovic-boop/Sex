@@ -198,6 +198,7 @@ var _step_top: Vector3 = Vector3.ZERO ## куда переставить тел�
 var _visual_y: float = 0.0            ## сглаженная высота для камеры и модели
 var _visual_offset: float = 0.0
 var _step_lag: Vector3 = Vector3.ZERO ## насколько картинка отстаёт после переноса вперёд
+var _pose_lift: float = 0.0           ## на сколько поднята модель, чтобы поза не тонула
 var _stair_cycle: float = 0.0         ## оценка глубины проступи по прошлым ступенькам
 var _stair_shift: float = 0.0         ## сколько дистанции подарил последний перенос
 var _stair_travel: float = 0.0        ## пройдено с прошлого захода на ступеньку
@@ -902,9 +903,29 @@ func _update_step_smoothing(delta: float) -> void:
 	_step_lag = _step_lag.lerp(Vector3.ZERO, clampf(1.0 - exp(-step_smooth_speed * delta), 0.0, 1.0))
 	_land_dip = lerpf(_land_dip, 0.0, clampf(1.0 - exp(-land_dip_recover * delta), 0.0, 1.0))
 
+	var lift: float = _pose_lift_target() if posing or _pose_lift > 0.001 else 0.0
+	_pose_lift = lerpf(_pose_lift, lift, clampf(delta * 10.0, 0.0, 1.0))
+
 	# корпус не повёрнут (крутится только модель), поэтому мировой сдвиг = локальный
-	model.position = Vector3(_step_lag.x, _visual_offset, _step_lag.z)
+	model.position = Vector3(_step_lag.x, _visual_offset + _pose_lift, _step_lag.z)
 	cam_yaw.position = Vector3(_step_lag.x, pivot_height + _visual_offset - _land_dip, _step_lag.z)
+
+
+## Клип позы опускает таз, и модель уезжает ниже начала координат тела — то есть
+## под пол: физическое тело остаётся цилиндром и подстроиться под позу не может.
+## Поэтому меряем, насколько низко ушла самая нижняя кость, и ровно на столько
+## поднимаем модель. В стойке нижняя кость и так над нулём, поправка выходит нулевой,
+## так что проверка ничего не портит и в обычном движении.
+func _pose_lift_target() -> float:
+	if skeleton == null:
+		return 0.0
+	var base := global_position.y + _pose_lift      # текущий подъём вычитаем, иначе он себя же и накрутит
+	var lowest := 0.0
+	for b in skeleton.get_bone_count():
+		var bone_y: float = (skeleton.global_transform
+			* skeleton.get_bone_global_pose(b)).origin.y
+		lowest = minf(lowest, bone_y - base)
+	return -lowest
 
 
 func _process(delta: float) -> void:

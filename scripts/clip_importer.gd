@@ -55,7 +55,7 @@ static func add_clip(target: AnimationPlayer, skeleton: Skeleton3D,
 
 	var scale := _rig_scale(source_skeleton, skeleton)
 	var bone_path := _bone_track_prefix(target)
-	var clip := _retarget(source, skeleton, bone_path, scale)
+	var clip := _retarget(source, source_skeleton, skeleton, bone_path, scale)
 	probe.queue_free()
 
 	if clip.get_track_count() == 0:
@@ -104,7 +104,12 @@ static func _bone_track_prefix(target: AnimationPlayer) -> String:
 	return ""
 
 
-static func _retarget(source: Animation, skeleton: Skeleton3D,
+## Позиции переносятся не как есть, а как смещение от позы покоя: у двух ригов
+## таз стоит на разной высоте и в разных единицах, и абсолютное значение оттуда
+## сюда не годится — персонаж уезжает под пол. Берём, насколько кость сдвинулась
+## относительно своего покоя в исходнике, пересчитываем в наш масштаб и
+## прикладываем к нашему покою.
+static func _retarget(source: Animation, from_skeleton: Skeleton3D, skeleton: Skeleton3D,
 		bone_path: String, scale: float) -> Animation:
 	var clip: Animation = source.duplicate(true)
 	for i in range(clip.get_track_count() - 1, -1, -1):
@@ -114,16 +119,26 @@ static func _retarget(source: Animation, skeleton: Skeleton3D,
 			clip.remove_track(i)          # дорожки мешей и материалов нам не нужны
 			continue
 
-		var bone := _clean_bone(NodePath(clip.track_get_path(i)).get_concatenated_subnames())
-		if skeleton.find_bone(bone) < 0:
+		var raw := NodePath(clip.track_get_path(i)).get_concatenated_subnames()
+		var bone := _clean_bone(str(raw))
+		var target_bone := skeleton.find_bone(bone)
+		if target_bone < 0:
 			clip.remove_track(i)          # такой кости у нас нет
 			continue
 		clip.track_set_path(i, NodePath("%s:%s" % [bone_path, bone]))
 
-		if kind == Animation.TYPE_POSITION_3D and not is_equal_approx(scale, 1.0):
+		if kind == Animation.TYPE_POSITION_3D:
+			var here := skeleton.get_bone_rest(target_bone).origin
+			var there := Vector3.ZERO
+			if from_skeleton != null:
+				var source_bone := from_skeleton.find_bone(str(raw))
+				if source_bone < 0:
+					source_bone = from_skeleton.find_bone(bone)
+				if source_bone >= 0:
+					there = from_skeleton.get_bone_rest(source_bone).origin
 			for k in clip.track_get_key_count(i):
 				var v: Vector3 = clip.track_get_key_value(i, k)
-				clip.track_set_key_value(i, k, v * scale)
+				clip.track_set_key_value(i, k, here + (v - there) * scale)
 	return clip
 
 
