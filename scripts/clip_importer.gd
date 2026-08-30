@@ -12,8 +12,9 @@ extends RefCounted
 ##
 ## И главное: клип может быть снят на другой позе покоя. Тогда повороты приезжают
 ## в чужой системе координат, и персонаж сидит боком или лёжа стоит. Поправка
-## считается из разницы рестовых поз двух ригов — где они совпадают, поправка
-## единичная и ничего не трогает.
+## считается из разницы рестовых поз и применяется только к корневой кости — она
+## разворачивает всю фигуру, остальные кости идут за родителем. Где позы
+## совпадают, поправка единичная и ничего не трогает.
 ##
 ## Поэтому клип переносится, а не подключается: пути дорожек переписываются на
 ## наш скелет, повороты доворачиваются на разницу покоя, смещения переносятся
@@ -138,33 +139,35 @@ static func _retarget(source: Animation, from_skeleton: Skeleton3D, skeleton: Sk
 			if source_bone < 0:
 				source_bone = from_skeleton.find_bone(bone)
 
-		# Поправка на разницу рестовых поз. Клип хранит поворот кости
-		# относительно её покоя в своём риге; если покой там другой, поза
-		# приезжает повёрнутой — персонаж сидит боком или лёжа стоит.
-		# Разница считается, а не подбирается: где позы совпадают, поправка
-		# выходит единичной и ничего не меняет.
-		var fix := _rest_fix(from_skeleton, source_bone, skeleton, target_bone)
+		# Поправка на разницу рестовых поз — и только у корневой кости.
+		#
+		# Клип хранит поворот кости относительно её покоя. Если весь риг снят в
+		# другой системе координат, разница сидит в покое корня, и доворот таза
+		# ставит на место всю фигуру: остальные кости идут за родителем. Ровно
+		# так же доворачивали три клипа пака при сборке player.glb.
+		#
+		# Применять ту же поправку к каждой кости нельзя: у одинакового рига
+		# кости конечностей и так совпадают, а если разойдутся — поворот звена
+		# задан в системе родителя, которую этой поправкой не трогаем, и цепочку
+		# выкручивает. Руки ломаются именно об это.
+		var root := skeleton.get_bone_parent(target_bone) < 0
+		var fix := Quaternion.IDENTITY
+		if root:
+			fix = _rest_fix(from_skeleton, source_bone, skeleton, target_bone)
 
 		if kind == Animation.TYPE_ROTATION_3D:
-			for k in clip.track_get_key_count(i):
-				var q: Quaternion = clip.track_get_key_value(i, k)
-				clip.track_set_key_value(i, k, fix * q)
+			if root:
+				for k in clip.track_get_key_count(i):
+					var q: Quaternion = clip.track_get_key_value(i, k)
+					clip.track_set_key_value(i, k, fix * q)
 		elif kind == Animation.TYPE_POSITION_3D:
-			# смещение задано в системе родителя, поэтому и разворачиваем его
-			# поправкой родителя, а для корневой кости — своей же
-			var frame := fix
-			if from_skeleton != null and source_bone >= 0:
-				var source_parent := from_skeleton.get_bone_parent(source_bone)
-				var target_parent := skeleton.get_bone_parent(target_bone)
-				if source_parent >= 0 and target_parent >= 0:
-					frame = _rest_fix(from_skeleton, source_parent, skeleton, target_parent)
 			var here := skeleton.get_bone_rest(target_bone).origin
 			var there := Vector3.ZERO
 			if source_bone >= 0:
 				there = from_skeleton.get_bone_rest(source_bone).origin
 			for k in clip.track_get_key_count(i):
 				var v: Vector3 = clip.track_get_key_value(i, k)
-				clip.track_set_key_value(i, k, here + (frame * (v - there)) * scale)
+				clip.track_set_key_value(i, k, here + (fix * (v - there)) * scale)
 	return clip
 
 

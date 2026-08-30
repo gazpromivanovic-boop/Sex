@@ -139,6 +139,10 @@ extends CharacterBody3D
 	"res://assets/animations/sitting_idle.fbx",
 	"res://assets/animations/sitting_pose.fbx",
 ]
+## Насколько кость утоплена в теле, м. Опорные кости — таза и кистей — лежат
+## внутри меша, поэтому землёй для них считается уровень чуть ниже самой кости:
+## иначе поза «стоит» на костях и висит над поверхностью.
+@export var pose_ground_offset: float = 0.06
 ## Доворот модели в позе, градусы по осям, по значению на каждую позу.
 ## Обычно нужен ноль: clip_importer сам считает поправку на разницу рестовых поз.
 ## Это запас на случай, если клип снят настолько иначе, что расчёта не хватило —
@@ -203,7 +207,7 @@ var _step_top: Vector3 = Vector3.ZERO ## куда переставить тел�
 var _visual_y: float = 0.0            ## сглаженная высота для камеры и модели
 var _visual_offset: float = 0.0
 var _step_lag: Vector3 = Vector3.ZERO ## насколько картинка отстаёт после переноса вперёд
-var _pose_lift: float = 0.0           ## на сколько поднята модель, чтобы поза не тонула
+var _pose_lift: float = 0.0           ## сдвиг модели, чтобы поза легла на опору
 var _pose_tilt: Vector3 = Vector3.ZERO ## текущий доворот позы, градусы
 var _stair_cycle: float = 0.0         ## оценка глубины проступи по прошлым ступенькам
 var _stair_shift: float = 0.0         ## сколько дистанции подарил последний перенос
@@ -918,7 +922,7 @@ func _update_step_smoothing(delta: float) -> void:
 	model.rotation = Vector3(deg_to_rad(_pose_tilt.x),
 		model_yaw + deg_to_rad(_pose_tilt.y), deg_to_rad(_pose_tilt.z))
 
-	var lift: float = _pose_lift_target() if posing or _pose_lift > 0.001 else 0.0
+	var lift: float = _pose_ground_shift() if posing or absf(_pose_lift) > 0.001 else 0.0
 	_pose_lift = lerpf(_pose_lift, lift, clampf(delta * 10.0, 0.0, 1.0))
 
 	# корпус не повёрнут (крутится только модель), поэтому мировой сдвиг = локальный
@@ -926,21 +930,25 @@ func _update_step_smoothing(delta: float) -> void:
 	cam_yaw.position = Vector3(_step_lag.x, pivot_height + _visual_offset - _land_dip, _step_lag.z)
 
 
-## Клип позы опускает таз, и модель уезжает ниже начала координат тела — то есть
-## под пол: физическое тело остаётся цилиндром и подстроиться под позу не может.
-## Поэтому меряем, насколько низко ушла самая нижняя кость, и ровно на столько
-## поднимаем модель. В стойке нижняя кость и так над нулём, поправка выходит нулевой,
-## так что проверка ничего не портит и в обычном движении.
-func _pose_lift_target() -> float:
+## Сажает позу на опору. Физическое тело остаётся цилиндром и под позу
+## подстроиться не может, поэтому подгоняем саму модель: находим самую нижнюю
+## кость и сдвигаем модель так, чтобы она встала на уровень пола, утопленная
+## внутрь тела на pose_ground_offset. Сдвиг работает в обе стороны — поза может
+## и провалиться под пол, и повиснуть над ним, и оба случая лечатся одинаково.
+## Опорной становится та кость, что ниже всех: сидя это таз и кисти, лёжа — бок.
+func _pose_ground_shift() -> float:
 	if skeleton == null:
 		return 0.0
-	var base := global_position.y + _pose_lift      # текущий подъём вычитаем, иначе он себя же и накрутит
-	var lowest := 0.0
+	# текущий сдвиг вычитаем, иначе он подмешается в замер и накрутит сам себя
+	var base := global_position.y + _pose_lift
+	var lowest := INF
 	for b in skeleton.get_bone_count():
 		var bone_y: float = (skeleton.global_transform
 			* skeleton.get_bone_global_pose(b)).origin.y
 		lowest = minf(lowest, bone_y - base)
-	return -lowest
+	if is_inf(lowest):
+		return 0.0
+	return clampf(-pose_ground_offset - lowest, -0.6, 0.6)
 
 
 func _process(delta: float) -> void:
