@@ -26,25 +26,31 @@ uniform vec3 sun_color : source_color = vec3(1.0, 0.82, 0.58);
 // Угловой радиус диска в градусах. У настоящего солнца это 0.27°, но такое
 // пятно на закате не читается — берём заметно крупнее.
 uniform float sun_angular_size : hint_range(0.1, 15.0) = 2.2;
-uniform float sun_energy : hint_range(0.0, 40.0) = 4.5;
+uniform float sun_energy : hint_range(0.0, 40.0) = 7.0;
 uniform vec3 halo_color : source_color = vec3(1.0, 0.42, 0.14);
 // Ширина ореола вокруг солнца: больше значение — уже пятно.
 uniform float halo_tightness : hint_range(1.0, 200.0) = 22.0;
-uniform float halo_energy : hint_range(0.0, 8.0) = 1.0;
+uniform float halo_energy : hint_range(0.0, 8.0) = 1.6;
 // Второй, совсем широкий ореол — он и подкрашивает полнеба в тёплый.
 uniform float wash_tightness : hint_range(0.5, 20.0) = 2.5;
-uniform float wash_energy : hint_range(0.0, 4.0) = 0.18;
+uniform float wash_energy : hint_range(0.0, 4.0) = 0.3;
 
 group_uniforms ground;
-uniform vec3 ground_color : source_color = vec3(0.045, 0.04, 0.06);
+// Цвет у самой линии горизонта — сюда садится дымка.
+uniform vec3 ground_horizon : source_color = vec3(0.30, 0.17, 0.16);
+// Цвет вниз, под ноги. Между ними идёт градиент: ровная заливка читается как
+// чёрный провал, стоит только посмотреть за край уровня.
+uniform vec3 ground_deep : source_color = vec3(0.05, 0.04, 0.06);
+// Насколько быстро дымка темнеет ко дну. Меньше — дольше держится светлой.
+uniform float ground_falloff : hint_range(0.2, 8.0) = 1.7;
 // Насколько мягко небо переходит в землю под линией горизонта.
-uniform float ground_blend : hint_range(0.005, 0.5) = 0.06;
+uniform float ground_blend : hint_range(0.005, 0.5) = 0.12;
 
 group_uniforms clouds;
 // 0 — чистое небо, 1 — сплошная облачность.
 uniform float cloud_amount : hint_range(0.0, 1.0) = 0.5;
-uniform float cloud_sharpness : hint_range(0.01, 1.0) = 0.35;
-uniform float cloud_scale : hint_range(0.1, 8.0) = 1.6;
+uniform float cloud_sharpness : hint_range(0.01, 1.0) = 0.45;
+uniform float cloud_scale : hint_range(0.1, 8.0) = 2.4;
 uniform float cloud_speed : hint_range(0.0, 0.2) = 0.008;
 uniform vec3 cloud_lit : source_color = vec3(1.0, 0.66, 0.38);
 uniform vec3 cloud_dark : source_color = vec3(0.16, 0.12, 0.2);
@@ -94,17 +100,29 @@ void sky() {
 		col += halo_color * pow(sun_dot, wash_tightness) * wash_energy;
 	}
 
-	// облака лежат на условной плоскости: чем ближе к горизонту, тем сильнее
-	// вытягивается проекция — так и выглядит перспектива облачного слоя
-	if (up > 0.01 && cloud_amount > 0.001) {
-		vec2 uv = dir.xz / (up + 0.15) * cloud_scale + vec2(TIME * cloud_speed, 0.0);
-		float n = fbm(uv);
+	// Облака лежат на условной плоскости над головой. Знаменатель смягчён
+	// намеренно: если делить на сам up, у горизонта координаты улетают в тысячи,
+	// где sin-хеш теряет точность и шум вырождается в прямые полосы и клинья.
+	// С таким знаменателем растяжение ограничено, а перспектива слоя остаётся.
+	if (cloud_amount > 0.001) {
+		float h = max(up, 0.0);
+		vec2 uv = dir.xz / (h + 0.45) * cloud_scale;
+		uv += vec2(TIME * cloud_speed, TIME * cloud_speed * 0.4);
+
+		// доменное искажение: облака получают рваные края вместо круглых пятен
+		vec2 warp = vec2(fbm(uv * 0.55 + 11.3), fbm(uv * 0.55 - 7.1)) - 0.5;
+		float n = fbm(uv + warp * 1.7);
+
 		float lo = 1.0 - cloud_amount;
 		float cover = smoothstep(lo, lo + cloud_sharpness, n);
-		// подсветка снизу-сбоку: у заката облака горят со стороны солнца
+		// к самому горизонту слой истончается и уходит в дымку
+		cover *= smoothstep(0.0, 0.3, h);
+
+		// подсветка со стороны солнца плюс объём: плотное ядро светлее краёв
 		vec3 cloud = mix(cloud_dark, cloud_lit, pow(sun_dot, 2.5));
-		// у самого горизонта слой уводим в дымку, иначе видно край проекции
-		cover *= smoothstep(0.01, 0.22, up);
+		// окно фиксированной ширины: при малой облачности lo подходит к единице,
+		// и smoothstep(lo, 1.0, n) выродился бы в неопределённый случай
+		cloud *= mix(0.8, 1.2, smoothstep(lo, lo + 0.5, n));
 		col = mix(col, cloud, cover);
 	}
 
@@ -118,9 +136,19 @@ void sky() {
 		col += sun_color * disc * sun_energy * LIGHT0_ENERGY;
 	}
 
-	// земля под горизонтом. Порядок краёв в smoothstep важен: при edge0 >= edge1
-	// результат по спецификации не определён и на разных драйверах разный.
-	col = mix(col, ground_color, 1.0 - smoothstep(-ground_blend, 0.0, up));
+	// Земля под горизонтом. Не заливка одним цветом, а дымка: у линии горизонта
+	// светлая, ко дну темнеет и со стороны солнца подхватывает тепло. Иначе,
+	// стоит посмотреть за край уровня, полкадра занимает чёрная пустота.
+	// Порядок краёв в smoothstep важен: при edge0 >= edge1 результат по
+	// спецификации не определён и на разных драйверах разный.
+	float below = 1.0 - smoothstep(-ground_blend, 0.0, up);
+	if (below > 0.001) {
+		float depth = pow(clamp(-up, 0.0, 1.0), 1.0 / ground_falloff);
+		vec3 gnd = mix(ground_horizon, ground_deep, depth);
+		gnd += halo_color * pow(sun_dot, wash_tightness * 1.5)
+			* wash_energy * 0.7 * (1.0 - depth);
+		col = mix(col, gnd, below);
+	}
 
 	COLOR = col;
 }
