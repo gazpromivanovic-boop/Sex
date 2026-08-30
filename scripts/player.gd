@@ -131,6 +131,15 @@ extends CharacterBody3D
 ## На сколько градусов должна разойтись камера и корпус, чтобы включился разворот на месте.
 @export var turn_in_place_angle: float = 50.0
 
+@export_group("Позы")
+## Файлы поз в том же порядке, в каком их листает C. Клипы скачаны с Mixamo и
+## лежат отдельными FBX: они переносятся на наш скелет при запуске, см.
+## scripts/clip_importer.gd.
+@export var pose_files: Array[String] = [
+	"res://assets/animations/sitting_idle.fbx",
+	"res://assets/animations/sitting_pose.fbx",
+]
+
 @export_group("Эмоции")
 ## Скорость указателя в колесе эмоций.
 @export var wheel_pointer_speed: float = 1.0
@@ -200,6 +209,11 @@ var anim_player: AnimationPlayer
 var skeleton: Skeleton3D
 var head_hider: HeadHider
 var emoting: bool = false             ## сейчас играет эмоция
+var posing: bool = false              ## персонаж сидит или лежит
+var pose_index: int = -1              ## какая поза сейчас, -1 — стоим
+var pose_node: AnimationNodeAnimation ## узел дерева, которому подменяем клип позы
+var available_poses: Array = []
+var _fp_before_pose: bool = false
 var current_emote: String = ""
 var emote_wheel: Control              ## радиальное меню, ищется по группе
 var emote_node: AnimationNodeAnimation  ## узел дерева, которому подменяем клип
@@ -211,6 +225,12 @@ var _eye_local: Vector3 = Vector3.ZERO   ## голова относительн�
 var _eye_ready: bool = false
 
 const LOOPING_ANIMS := ["Idle", "Walk", "StrafeLeft", "StrafeRight", "Sprint"]
+
+## Порядок здесь = порядок перебора клавишей C.
+const POSES := [
+	{"id": "PoseSit", "title": "сидит"},
+	{"id": "PoseLie", "title": "полулёжа"},
+]
 
 ## Порядок здесь = порядок секторов в колесе и цифр 1–9.
 const EMOTES := [
@@ -226,6 +246,7 @@ const EMOTES := [
 ]
 
 signal emote_changed(id: String)
+signal pose_changed(title: String)
 
 # ─────────────────────────────────────────────────────────────── запуск
 
@@ -235,6 +256,7 @@ func _ready() -> void:
 	_base_gravity = ProjectSettings.get_setting("physics/3d/default_gravity", 9.8) * gravity_scale
 	_setup_animation()
 	_setup_head_hider()
+	_setup_poses()
 	_setup_emotes()
 
 	model_yaw = rotation.y
@@ -339,6 +361,71 @@ func _setup_head_hider() -> void:
 	skeleton.add_child(head_hider)
 
 
+## Готовит позы: переносит клипы из отдельных FBX на наш скелет и запоминает
+## узел дерева, которому будем подменять клип. Клипы Mixamo лежат в проекте как
+## есть — сведение их в player.glb требует Blender, а перенос делается кодом.
+func _setup_poses() -> void:
+	pose_node = _blend_tree_node("PoseAnim") as AnimationNodeAnimation
+	available_poses.clear()
+	if anim_player == null or skeleton == null or pose_node == null:
+		return
+	for i in POSES.size():
+		if i >= pose_files.size():
+			break
+		var scene: PackedScene = load(pose_files[i]) as PackedScene
+		if scene == null:
+			push_warning("Не нашёлся файл позы: %s" % pose_files[i])
+			continue
+		if ClipImporter.add_clip(anim_player, skeleton, scene, str(POSES[i]["id"])):
+			available_poses.append(POSES[i])
+
+
+## Сажает или укладывает персонажа. Пока он в позе, движение выключено —
+## работает только камера, как и в эмоции.
+func set_pose(index: int) -> void:
+	if pose_node == null or index < 0 or index >= available_poses.size():
+		return
+	if emoting:
+		stop_emote()
+	if not posing:
+		_fp_before_pose = first_person
+	if first_person:
+		# из своей головы поза не читается, показываем со стороны
+		first_person = false
+		_apply_view()
+	pose_index = index
+	pose_node.animation = str(available_poses[index]["id"])
+	posing = true
+	turning_in_place = false
+	_air_in_emote = 0.0
+	_fire("parameters/PoseShot/request")
+	pose_changed.emit(str(available_poses[index]["title"]))
+
+
+## Поднимает персонажа обратно в стойку.
+func stand_up() -> void:
+	if not posing:
+		return
+	posing = false
+	pose_index = -1
+	if _fp_before_pose and not first_person:
+		first_person = true
+		_apply_view()
+	_fp_before_pose = false
+	_fire("parameters/PoseShot/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
+	pose_changed.emit("")
+
+
+## C листает позы по кругу, Shift возвращает в стойку.
+func _handle_pose_input() -> void:
+	if available_poses.is_empty():
+		return
+	if posing and Input.is_action_just_pressed("sprint"):
+		stand_up()
+	elif Input.is_action_just_pressed("pose_cycle"):
+		set_pose((pose_index + 1) % available_poses.size())
+
+
 ## Готовит слой эмоций: узел дерева, которому будем подменять клип, и колесо выбора.
 func _setup_emotes() -> void:
 	if anim_tree != null and anim_tree.tree_root is AnimationNodeBlendTree:
@@ -377,6 +464,8 @@ func start_emote(id: String) -> void:
 			break
 	if not known:
 		return
+	if posing:
+		stand_up()
 	current_emote = id
 	emote_node.animation = id
 	if not emoting:
@@ -456,8 +545,9 @@ signal view_changed(is_first_person: bool)
 
 func _physics_process(delta: float) -> void:
 	_handle_emote_input()
-	if emoting:
-		_emote_physics(delta)
+	_handle_pose_input()
+	if emoting or posing:
+		_locked_physics(delta)
 		return
 	aiming = Input.is_action_pressed("aim")
 	var on_floor := is_on_floor()
@@ -673,9 +763,9 @@ func _handle_emote_input() -> void:
 		stop_emote()
 
 
-## Пока играет эмоция: ходьба, бег, прыжок и прицел выключены, корпус не поворачивается.
-## Гравитация работает — если пол исчез, эмоция прерывается.
-func _emote_physics(delta: float) -> void:
+## Пока играет эмоция или персонаж сидит: ходьба, бег, прыжок и прицел выключены,
+## корпус не поворачивается. Гравитация работает — если пол исчез, поза снимается.
+func _locked_physics(delta: float) -> void:
 	aiming = false
 	sprinting = false
 	if not is_on_floor():
@@ -690,6 +780,7 @@ func _emote_physics(delta: float) -> void:
 		_air_in_emote += delta
 		if _air_in_emote > 0.35:
 			stop_emote()
+			stand_up()
 
 	_update_animation(delta)
 

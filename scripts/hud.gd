@@ -6,6 +6,7 @@ WASD — движение
 Shift — бег вперёд
 Пробел — прыжок
 ПКМ — режим прицела (страйф)
+C — сесть / лечь, Shift — встать
 V — первое / третье лицо
 Q — сменить плечо
 Колесо — приблизить камеру
@@ -21,6 +22,7 @@ Esc — курсор / выход"""
 
 var player: Node = null
 var emote_title: String = ""
+var pose_title: String = ""
 
 
 func _ready() -> void:
@@ -32,6 +34,8 @@ func _ready() -> void:
 		player = get_parent().get_node_or_null("Player")
 	if player != null and player.has_signal("emote_changed"):
 		player.emote_changed.connect(_on_emote_changed)
+	if player != null and player.has_signal("pose_changed"):
+		player.pose_changed.connect(_on_pose_changed)
 
 
 func _on_emote_changed(id: String) -> void:
@@ -43,6 +47,10 @@ func _on_emote_changed(id: String) -> void:
 			emote_title = str(e["title"])
 			return
 	emote_title = id
+
+
+func _on_pose_changed(title: String) -> void:
+	pose_title = title
 
 
 func _process(_delta: float) -> void:
@@ -58,4 +66,6 @@ func _process(_delta: float) -> void:
 			view, mode, player.get_horizontal_speed(), player.target_speed, player.step_count]
 	if player.emoting:
 		text = "эмоция: %s\nShift — прекратить" % emote_title
+	elif player.posing:
+		text = "%s\nC — сменить позу, Shift — встать" % pose_title
 	status.text = text
