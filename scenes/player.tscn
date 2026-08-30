@@ -1,4 +1,4 @@
-[gd_scene load_steps=29 format=3]
+[gd_scene load_steps=26 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/body_collider.gd" id="4_collider"]
@@ -72,15 +72,6 @@ animation = &"TurnRight"
 fadein_time = 0.15
 fadeout_time = 0.25
 
-[sub_resource type="AnimationNodeAnimation" id="Anim_jump"]
-animation = &"Jump"
-
-[sub_resource type="AnimationNodeTimeScale" id="TimeScale_jump"]
-
-[sub_resource type="AnimationNodeOneShot" id="OneShot_jump"]
-fadein_time = 0.05
-fadeout_time = 0.22
-
 [sub_resource type="AnimationNodeAnimation" id="Anim_run_jump"]
 animation = &"RunJump"
 
@@ -115,12 +106,6 @@ nodes/TurnRightAnim/node = SubResource("Anim_turn_right")
 nodes/TurnRightAnim/position = Vector2(360, -60)
 nodes/TurnRightShot/node = SubResource("OneShot_turn_right")
 nodes/TurnRightShot/position = Vector2(580, 160)
-nodes/JumpAnim/node = SubResource("Anim_jump")
-nodes/JumpAnim/position = Vector2(360, -240)
-nodes/JumpSpeed/node = SubResource("TimeScale_jump")
-nodes/JumpSpeed/position = Vector2(580, -240)
-nodes/JumpShot/node = SubResource("OneShot_jump")
-nodes/JumpShot/position = Vector2(800, 160)
 nodes/RunJumpAnim/node = SubResource("Anim_run_jump")
 nodes/RunJumpAnim/position = Vector2(580, -420)
 nodes/RunJumpSpeed/node = SubResource("TimeScale_run_jump")
@@ -132,7 +117,7 @@ nodes/EmoteAnim/position = Vector2(1020, -600)
 nodes/EmoteShot/node = SubResource("OneShot_emote")
 nodes/EmoteShot/position = Vector2(1260, 160)
 nodes/output/position = Vector2(1500, 160)
-node_connections = [&"RunBlend", 0, &"Locomotion", &"RunBlend", 1, &"SprintAnim", &"Speed", 0, &"RunBlend", &"TurnLeftShot", 0, &"Speed", &"TurnLeftShot", 1, &"TurnLeftAnim", &"TurnRightShot", 0, &"TurnLeftShot", &"TurnRightShot", 1, &"TurnRightAnim", &"JumpSpeed", 0, &"JumpAnim", &"JumpShot", 0, &"TurnRightShot", &"JumpShot", 1, &"JumpSpeed", &"RunJumpSpeed", 0, &"RunJumpAnim", &"RunJumpShot", 0, &"JumpShot", &"RunJumpShot", 1, &"RunJumpSpeed", &"EmoteShot", 0, &"RunJumpShot", &"EmoteShot", 1, &"EmoteAnim", &"output", 0, &"EmoteShot"]
+node_connections = [&"RunBlend", 0, &"Locomotion", &"RunBlend", 1, &"SprintAnim", &"Speed", 0, &"RunBlend", &"TurnLeftShot", 0, &"Speed", &"TurnLeftShot", 1, &"TurnLeftAnim", &"TurnRightShot", 0, &"TurnLeftShot", &"TurnRightShot", 1, &"TurnRightAnim", &"RunJumpSpeed", 0, &"RunJumpAnim", &"RunJumpShot", 0, &"TurnRightShot", &"RunJumpShot", 1, &"RunJumpSpeed", &"EmoteShot", 0, &"RunJumpShot", &"EmoteShot", 1, &"EmoteAnim", &"output", 0, &"EmoteShot"]
 
 [node name="Player" type="CharacterBody3D" groups=["player"]]
 collision_layer = 2

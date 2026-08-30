@@ -55,6 +55,10 @@ extends CharacterBody3D
 ## Сколько времени нажатие пробела ждёт приземления (jump buffer), сек.
 ## Нажал чуть раньше касания земли — прыжок всё равно случится.
 @export var jump_buffer_time: float = 0.14
+## Минимальная скорость, с которой разрешён прыжок, м/с. Прыжка с места нет:
+## в паке под него только клип Jump с полусекундным приседанием и посадочным
+## шагом, который ни во что игровое не укладывается. Прыгаем с шага и с бега.
+@export var jump_min_speed: float = 0.8
 
 @export_group("Ступеньки")
 ## Максимальная высота препятствия, на которое персонаж заходит сам —
@@ -110,27 +114,20 @@ extends CharacterBody3D
 @export var anim_sprint_reference: float = 6.05
 @export var anim_speed_min: float = 0.6
 @export var anim_speed_max: float = 1.6
-## Подгонять темп анимаций прыжка под реальное время полёта. Клип «Jump» длится
-## 2.17 с, а прыжок держится в воздухе меньше секунды: без подгонки персонаж
-## успевает приземлиться, пока анимация ещё приседает перед отрывом.
+## Подгонять темп анимации прыжка под реальное время полёта. Без подгонки клип
+## живёт своей жизнью: персонаж успевает приземлиться, пока анимация ещё
+## готовится к отрыву.
 @export var fit_jump_anim: bool = true
-## Предел темпа анимаций прыжка, чтобы клип не мелькал.
+## Предел темпа анимации прыжка, чтобы клип не мелькал.
 @export var jump_anim_max_speed: float = 3.4
-## Во сколько раз ускорить анимацию прыжка с места, если подгонка выключена.
-@export var jump_anim_speed: float = 1.8
-## То же для прыжка с разбега.
+## Во сколько раз ускорить анимацию прыжка, если подгонка выключена.
 @export var run_jump_anim_speed: float = 1.3
-## Момент клипа Jump, когда стопы отрываются от пола, сек. Всё, что раньше, —
-## приседание перед прыжком; в игре отрыв мгновенный, поэтому оно срезается.
-@export var jump_takeoff_time: float = 0.24
-## Момент клипа Jump, когда стопы снова касаются пола, сек. По нему и считается
-## темп: касание в анимации должно совпасть с касанием в физике.
-@export var jump_land_time: float = 0.80
-## То же для клипа RunJump.
+## Момент клипа RunJump, когда стопы отрываются от пола, сек. Всё, что раньше, —
+## подготовка к отрыву; в игре отрыв мгновенный, поэтому она срезается.
 @export var run_jump_takeoff_time: float = 0.10
+## Момент клипа RunJump, когда стопы снова касаются пола, сек. По нему и считается
+## темп: касание в анимации должно совпасть с касанием в физике.
 @export var run_jump_land_time: float = 0.60
-## С какой скорости прыжок проигрывается анимацией разбега, а не с места.
-@export var run_jump_speed_threshold: float = 2.6
 ## На сколько градусов должна разойтись камера и корпус, чтобы включился разворот на месте.
 @export var turn_in_place_angle: float = 50.0
 
@@ -299,8 +296,6 @@ func air_time() -> float:
 ## Подгоняет клипы прыжка под физику: приседание перед отрывом срезается, а темп
 ## берётся такой, чтобы касание земли в анимации совпало с касанием в игре.
 func _fit_jump_anims() -> void:
-	_fit_jump_clip("JumpAnim", "parameters/JumpSpeed/scale", "Jump",
-		jump_takeoff_time, jump_land_time, jump_anim_speed)
 	_fit_jump_clip("RunJumpAnim", "parameters/RunJumpSpeed/scale", "RunJump",
 		run_jump_takeoff_time, run_jump_land_time, run_jump_anim_speed)
 
@@ -511,16 +506,14 @@ func _update_jump(delta: float, on_floor: bool) -> void:
 			_jump_held = false
 		velocity.y = maxf(velocity.y - gravity * delta, -terminal_velocity)
 
-	if jump_buffer_timer > 0.0 and coyote_timer > 0.0:
+	# с места не прыгаем: под это в паке нет годной анимации
+	if (jump_buffer_timer > 0.0 and coyote_timer > 0.0
+			and get_horizontal_speed() > jump_min_speed):
 		velocity.y = sqrt(2.0 * _base_gravity * jump_height)
 		jump_buffer_timer = 0.0
 		coyote_timer = 0.0
 		_jump_held = true
-		# с разбега — своя анимация, с места — своя
-		if get_horizontal_speed() > run_jump_speed_threshold:
-			_fire("parameters/RunJumpShot/request")
-		else:
-			_fire("parameters/JumpShot/request")
+		_fire("parameters/RunJumpShot/request")
 
 
 ## К какой скорости стремимся: режим, отклонение стика и поправка на лестницу.
@@ -574,7 +567,6 @@ func _stair_slowdown(delta: float) -> float:
 ## Гасит анимации прыжка и просаживает камеру тем сильнее, чем жёстче удар.
 func _on_landed() -> void:
 	_jump_held = false
-	_fire("parameters/JumpShot/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
 	_fire("parameters/RunJumpShot/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
 	_land_dip = land_dip * clampf((_fall_speed - 4.0) / 10.0, 0.0, 1.0)
 

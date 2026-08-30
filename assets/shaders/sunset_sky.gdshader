@@ -26,14 +26,14 @@ uniform vec3 sun_color : source_color = vec3(1.0, 0.82, 0.58);
 // Угловой радиус диска в градусах. У настоящего солнца это 0.27°, но такое
 // пятно на закате не читается — берём заметно крупнее.
 uniform float sun_angular_size : hint_range(0.1, 15.0) = 2.2;
-uniform float sun_energy : hint_range(0.0, 40.0) = 8.0;
+uniform float sun_energy : hint_range(0.0, 40.0) = 4.5;
 uniform vec3 halo_color : source_color = vec3(1.0, 0.42, 0.14);
 // Ширина ореола вокруг солнца: больше значение — уже пятно.
 uniform float halo_tightness : hint_range(1.0, 200.0) = 22.0;
-uniform float halo_energy : hint_range(0.0, 8.0) = 2.4;
+uniform float halo_energy : hint_range(0.0, 8.0) = 1.0;
 // Второй, совсем широкий ореол — он и подкрашивает полнеба в тёплый.
 uniform float wash_tightness : hint_range(0.5, 20.0) = 2.5;
-uniform float wash_energy : hint_range(0.0, 4.0) = 0.55;
+uniform float wash_energy : hint_range(0.0, 4.0) = 0.18;
 
 group_uniforms ground;
 uniform vec3 ground_color : source_color = vec3(0.045, 0.04, 0.06);

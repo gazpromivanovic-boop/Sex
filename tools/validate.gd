@@ -91,10 +91,9 @@ func _process(_delta: float) -> bool:
 			" head_y=", snappedf(_bone_y("Head"), 0.01),
 			" foot_y=", snappedf(_bone_y("LeftFoot"), 0.01))
 		print("###2 материал=", skel.get_node("Body").get_surface_override_material(0))
-		print("###2 время полёта=", snappedf(player.air_time(), 0.001), " с; темп Jump=",
-			snappedf(_p("JumpSpeed/scale"), 0.001), " RunJump=",
+		print("###2 время полёта=", snappedf(player.air_time(), 0.001), " с; темп RunJump=",
 			snappedf(_p("RunJumpSpeed/scale"), 0.001),
-			" (клипы начинаются с отрыва, касание должно совпасть с полётом)")
+			" (клип начинается с отрыва, касание должно совпасть с полётом)")
 		# таз не должен уезжать в сторону от капсулы ни в одной анимации
 		var arm_scale: float = skel.get_parent().scale.x
 		for n in ap.get_animation_list():
@@ -150,7 +149,7 @@ func _process(_delta: float) -> bool:
 
 	if frames == 404:
 		print("###6 прыжок с разбега: RunJump=", _p("RunJumpShot/active"),
-			" Jump=", _p("JumpShot/active"), " vel_y=", snappedf(player.velocity.y, 0.01))
+			" vel_y=", snappedf(player.velocity.y, 0.01))
 
 	if frames == 440:
 		print("###6 после приземления: on_floor=", player.is_on_floor(),
@@ -169,25 +168,33 @@ func _process(_delta: float) -> bool:
 		print("###7 доворот закончен: корпус=", snappedf(rad_to_deg(player.model_yaw), 0.1),
 			"° turning=", player.turning_in_place)
 		_place(Vector3(0.0, 0.2, 6.0), 0.0)
+		emote_y = player.global_position.y
+		Input.action_press("jump")          # стоим на месте: прыжка быть не должно
+
+	if frames == 580:
+		print("###8 прыжок с места заблокирован: dy=",
+			snappedf(player.global_position.y - emote_y, 0.001),
+			" скорость=", snappedf(player.get_horizontal_speed(), 0.01),
+			" (ждём нули)")
+		_clear_input()
+		Input.action_press("move_forward")  # а с шага — должен сработать
+
+	if frames == 595:
 		Input.action_press("jump")
 
-	if frames == 563:
-		print("###8 прыжок с места запущен: Jump=", _p("JumpShot/active"),
-			" RunJump=", _p("RunJumpShot/active"))
-
-	if frames == 590:
+	if frames == 620:
 		Input.action_release("jump")        # отпускаем после верхней точки — не обрезаем
 
-	if frames > 560 and frames < 640:
+	if frames > 595 and frames < 650:
 		peak_y = maxf(peak_y, player.global_position.y)
-		if _p("JumpShot/active"):
+		if _p("RunJumpShot/active"):
 			jump_shot_seen = true
 
-	if frames == 640:
-		print("###8 анимация прыжка с места отработала: ", jump_shot_seen)
+	if frames == 650:
+		_clear_input()
+		print("###8 прыжок с шага отработал: ", jump_shot_seen)
 		print("###8 высота прыжка=", snappedf(peak_y, 0.01),
-			" сейчас y=", snappedf(player.global_position.y, 0.01),
-			" on_floor=", player.is_on_floor())
+			" (ждём около 1.15) on_floor=", player.is_on_floor())
 		player.first_person = true
 		player._apply_view()
 		_place(Vector3(0.0, 0.2, 6.0), 0.0)   # дадим приземлиться перед замером
