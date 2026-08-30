@@ -139,6 +139,11 @@ extends CharacterBody3D
 	"res://assets/animations/sitting_idle.fbx",
 	"res://assets/animations/sitting_pose.fbx",
 ]
+## Доворот модели в позе, градусы по осям, по значению на каждую позу.
+## Обычно нужен ноль: clip_importer сам считает поправку на разницу рестовых поз.
+## Это запас на случай, если клип снят настолько иначе, что расчёта не хватило —
+## угол можно добить прямо в инспекторе, глядя в игру.
+@export var pose_tilt: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]
 
 @export_group("Эмоции")
 ## Скорость указателя в колесе эмоций.
@@ -199,6 +204,7 @@ var _visual_y: float = 0.0            ## сглаженная высота дл�
 var _visual_offset: float = 0.0
 var _step_lag: Vector3 = Vector3.ZERO ## насколько картинка отстаёт после переноса вперёд
 var _pose_lift: float = 0.0           ## на сколько поднята модель, чтобы поза не тонула
+var _pose_tilt: Vector3 = Vector3.ZERO ## текущий доворот позы, градусы
 var _stair_cycle: float = 0.0         ## оценка глубины проступи по прошлым ступенькам
 var _stair_shift: float = 0.0         ## сколько дистанции подарил последний перенос
 var _stair_travel: float = 0.0        ## пройдено с прошлого захода на ступеньку
@@ -902,6 +908,15 @@ func _update_step_smoothing(delta: float) -> void:
 	_visual_offset = _visual_y - y
 	_step_lag = _step_lag.lerp(Vector3.ZERO, clampf(1.0 - exp(-step_smooth_speed * delta), 0.0, 1.0))
 	_land_dip = lerpf(_land_dip, 0.0, clampf(1.0 - exp(-land_dip_recover * delta), 0.0, 1.0))
+
+	# доворот ставим до замера подъёма: подъём считается по костям, а они едут
+	# вместе с моделью
+	var tilt := Vector3.ZERO
+	if posing and pose_index >= 0 and pose_index < pose_tilt.size():
+		tilt = pose_tilt[pose_index]
+	_pose_tilt = _pose_tilt.lerp(tilt, clampf(delta * 8.0, 0.0, 1.0))
+	model.rotation = Vector3(deg_to_rad(_pose_tilt.x),
+		model_yaw + deg_to_rad(_pose_tilt.y), deg_to_rad(_pose_tilt.z))
 
 	var lift: float = _pose_lift_target() if posing or _pose_lift > 0.001 else 0.0
 	_pose_lift = lerpf(_pose_lift, lift, clampf(delta * 10.0, 0.0, 1.0))
