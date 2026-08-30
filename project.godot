@@ -147,8 +147,8 @@ emote_9={
 
 [rendering]
 
-textures/default_filters/anisotropic_filtering_level=4
-textures/default_filters/texture_mipmap_bias=-0.25
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality=3
+textures/default_filters/anisotropic_filtering_level=4
 anti_aliasing/quality/msaa_3d=2
+textures/default_filters/texture_mipmap_bias=-0.25
 environment/defaults/default_environment="res://scenes/default_env.tres"

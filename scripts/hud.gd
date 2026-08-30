@@ -15,6 +15,10 @@ Esc — курсор / выход"""
 @onready var hints: Label = $Panel/Hints
 @onready var status: Label = $Status
 
+## Показывать вместо скорости пару «текущая / целевая» и счётчик ступенек.
+## Включается, когда движение ведёт себя не так, как ожидалось.
+@export var show_diagnostics: bool = false
+
 var player: Node = null
 var emote_title: String = ""
 
@@ -46,10 +50,12 @@ func _process(_delta: float) -> void:
 		return
 	var view := "от первого лица" if player.first_person else "от третьего лица"
 	var mode := "прицел" if player.aiming else "свободный"
-	# вторым числом идёт цель разгона: если скорость её обгоняет, энергию кто-то
-	# добавляет — по этой паре и видно, где именно
-	var text := "%s · %s\n%.2f / %.2f м/с · ступеней %d" % [
-		view, mode, player.get_horizontal_speed(), player.target_speed, player.step_count]
+	var text := "%s · %s\n%.1f м/с" % [view, mode, player.get_horizontal_speed()]
+	if show_diagnostics:
+		# вторым числом идёт цель разгона: если скорость её обгоняет, значит
+		# энергию кто-то добавляет — по этой паре видно, где именно
+		text = "%s · %s\n%.2f / %.2f м/с · ступеней %d" % [
+			view, mode, player.get_horizontal_speed(), player.target_speed, player.step_count]
 	if player.emoting:
 		text = "эмоция: %s\nShift — прекратить" % emote_title
 	status.text = text

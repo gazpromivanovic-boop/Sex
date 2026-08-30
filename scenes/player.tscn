@@ -1,6 +1,7 @@
-[gd_scene load_steps=28 format=3]
+[gd_scene load_steps=29 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/body_collider.gd" id="4_collider"]
 [ext_resource type="PackedScene" path="res://assets/models/player.glb" id="2_model"]
 [ext_resource type="Texture2D" path="res://assets/textures/man_body.jpg" id="3_texture"]
 
@@ -11,9 +12,9 @@ texture_filter = 5
 roughness = 0.8
 metallic_specular = 0.5
 
-[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_body"]
 radius = 0.32
-height = 1.8
+height = 1.79
 
 [sub_resource type="AnimationNodeAnimation" id="Anim_idle"]
 animation = &"Idle"
@@ -140,8 +141,14 @@ floor_snap_length = 0.4
 script = ExtResource("1_player")
 
 [node name="Collision" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-shape = SubResource("CapsuleShape3D_body")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.895, 0)
+shape = SubResource("CylinderShape3D_body")
+script = ExtResource("4_collider")
+visual_root = NodePath("../Model/Character")
+kind = 0
+radius = 0.32
+height = 0.0
+align_bottom_to_origin = true
 
 [node name="Model" type="Node3D" parent="."]
 

@@ -61,15 +61,15 @@ extends CharacterBody3D
 ## шагом, бегом и в падении. Ступеньки на уровне высотой 0.34 м.
 @export var max_step_height: float = 0.45
 ## На сколько метров вперёд переставляется нога при заходе на ступеньку.
-## Считать это от пройденного за кадр отрезка нельзя: на упоре он схлопывается
-## почти в ноль, капсула встаёт на самую кромку, а контакт с кромкой круче
-## floor_max_angle — Godot считает его стеной и сталкивает персонажа обратно.
-## Нужно заметно больше трети радиуса капсулы (0.32 м).
-@export var step_forward_reach: float = 0.16
-## Какую долю движения забирать на погашение долга за перенос. Перенос вперёд
-## мгновенный, а протоптать за тот кадр персонаж был должен пару сантиметров:
-## без возврата разницы лестница получается быстрее ровного пола.
-@export var step_debt_payback: float = 0.4
+## У плоского дна (BodyCollider, форма CYLINDER) хватает пары сантиметров: оно
+## ложится на проступь всей площадью, и контакт сразу считается полом. Круглому
+## дну капсулы пришлось бы переставлять почти на треть радиуса, иначе она встаёт
+## на кромку, а контакт с кромкой круче floor_max_angle — Godot считает его
+## стеной и сталкивает персонажа обратно вниз.
+@export var step_forward_reach: float = 0.05
+## Предел замедления на лестнице. Само замедление считается по глубине проступи,
+## это только страховка от слишком мелких ступеней.
+@export var stair_speed_min: float = 0.55
 ## Разрешить заходить на ступеньку в воздухе на нисходящей ветке прыжка:
 ## так лестница берётся и с разбега с прыжком, а не только шагом.
 @export var step_up_in_air: bool = true
@@ -180,6 +180,8 @@ var first_person: bool = false
 var aiming: bool = false
 var turning_in_place: bool = false
 var sprinting: bool = false           ## бежим ли сейчас (для анимации и обзора)
+var move_dir: Vector3 = Vector3.ZERO  ## куда просят идти, в мировых осях
+var move_amount: float = 0.0          ## насколько отклонён стик, 0..1
 var was_on_floor: bool = true
 var coyote_timer: float = 0.0
 var jump_buffer_timer: float = 0.0    ## сколько ещё ждёт нажатый заранее прыжок
@@ -190,7 +192,10 @@ var _step_top: Vector3 = Vector3.ZERO ## куда переставить тел�
 var _visual_y: float = 0.0            ## сглаженная высота для камеры и модели
 var _visual_offset: float = 0.0
 var _step_lag: Vector3 = Vector3.ZERO ## насколько картинка отстаёт после переноса вперёд
-var _step_debt: float = 0.0           ## сколько метров подарил перенос на ступеньку
+var _stair_cycle: float = 0.0         ## оценка глубины проступи по прошлым ступенькам
+var _stair_shift: float = 0.0         ## сколько дистанции подарил последний перенос
+var _stair_travel: float = 0.0        ## пройдено с прошлого захода на ступеньку
+var _stair_factor: float = 1.0        ## текущее замедление на лестнице
 var target_speed: float = 0.0         ## к какой скорости сейчас разгоняемся — для HUD
 var step_count: int = 0               ## сколько раз зашли на ступеньку — для HUD
 var _land_dip: float = 0.0
@@ -460,29 +465,52 @@ func _physics_process(delta: float) -> void:
 		_emote_physics(delta)
 		return
 	aiming = Input.is_action_pressed("aim")
-	var strafe_mode := aiming or first_person
 	var on_floor := is_on_floor()
 
-	# --- таймеры прыжка ---
-	# coyote time прощает поздний прыжок после схода с края,
-	# jump buffer — ранний, нажатый ещё в воздухе перед касанием земли.
+	_read_move_input()
+	_update_jump(delta, on_floor)
+	target_speed = _desired_speed(delta)
+	_accelerate(delta, on_floor)
+
+	_fall_speed = maxf(0.0, -velocity.y)
+	_move_with_steps(delta)
+
+	if is_on_floor() and not was_on_floor:
+		_on_landed()
+	was_on_floor = is_on_floor()
+
+	_update_facing(delta, aiming or first_person)
+	_update_animation(delta)
+
+
+## Читает WASD или стик и переводит в мировое направление относительно камеры.
+func _read_move_input() -> void:
+	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	move_amount = clampf(input.length(), 0.0, 1.0)
+	move_dir = (Basis(Vector3.UP, yaw) * Vector3(input.x, 0.0, input.y)).normalized()
+	# спринт только вперёд: вбок и назад под него нет анимации
+	sprinting = (Input.is_action_pressed("sprint") and not aiming
+		and move_amount > 0.1 and input.y < -0.4)
+
+
+## Coyote time прощает прыжок, нажатый уже после схода с края, jump buffer —
+## нажатый ещё в воздухе перед касанием земли. Гравитация на падении тяжелее,
+## чем на взлёте, а отпущенный на взлёте пробел обрезает подъём.
+func _update_jump(delta: float, on_floor: bool) -> void:
 	coyote_timer = coyote_time if on_floor else coyote_timer - delta
 	jump_buffer_timer -= delta
 	if Input.is_action_just_pressed("jump"):
 		jump_buffer_timer = jump_buffer_time
 
-	# --- гравитация ---
 	if not on_floor:
 		var gravity := _base_gravity
 		if velocity.y <= 0.0:
 			gravity *= fall_gravity_scale
 		elif _jump_held and not Input.is_action_pressed("jump"):
-			# пробел отпустили на взлёте — обрезаем подъём до короткого прыжка
 			velocity.y = minf(velocity.y, sqrt(2.0 * _base_gravity * min_jump_height))
 			_jump_held = false
 		velocity.y = maxf(velocity.y - gravity * delta, -terminal_velocity)
 
-	# --- прыжок ---
 	if jump_buffer_timer > 0.0 and coyote_timer > 0.0:
 		velocity.y = sqrt(2.0 * _base_gravity * jump_height)
 		jump_buffer_timer = 0.0
@@ -494,32 +522,30 @@ func _physics_process(delta: float) -> void:
 		else:
 			_fire("parameters/JumpShot/request")
 
-	# --- направление движения относительно камеры ---
-	var input_vec := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	var cam_basis := Basis(Vector3.UP, yaw)
-	var direction := (cam_basis * Vector3(input_vec.x, 0.0, input_vec.y)).normalized()
-	var moving := input_vec.length() > 0.1
 
-	sprinting = Input.is_action_pressed("sprint") and moving and not aiming and input_vec.y < -0.4
+## К какой скорости стремимся: режим, отклонение стика и поправка на лестницу.
+func _desired_speed(delta: float) -> float:
 	var speed := walk_speed
 	if aiming:
 		speed = aim_speed
 	elif sprinting:
 		speed = run_speed
 	# на геймпаде половина отклонения стика = половина скорости
-	speed *= clampf(input_vec.length(), 0.0, 1.0)
+	return speed * move_amount * _stair_slowdown(delta)
 
-	# --- разгон ---
+
+func _accelerate(delta: float, on_floor: bool) -> void:
+	var moving := move_amount > 0.1
 	var horizontal := Vector3(velocity.x, 0.0, velocity.z)
-	var target_vel := direction * speed
+	var target := move_dir * target_speed
 	if on_floor:
-		horizontal = horizontal.move_toward(target_vel,
+		horizontal = horizontal.move_toward(target,
 			(acceleration if moving else ground_deceleration) * delta)
 	elif moving:
 		# в воздухе доворачиваем вектор скорости, но не гасим его: разбег
 		# перед прыжком не должен теряться от того, что зажата другая клавиша
-		var steered := horizontal.move_toward(target_vel, air_acceleration * delta)
-		var keep := maxf(steered.length(), minf(horizontal.length(), speed))
+		var steered := horizontal.move_toward(target, air_acceleration * delta)
+		var keep := maxf(steered.length(), minf(horizontal.length(), target_speed))
 		if steered.length() > 0.001:
 			steered = steered.normalized() * keep
 		horizontal = steered
@@ -527,35 +553,22 @@ func _physics_process(delta: float) -> void:
 		horizontal = horizontal.move_toward(Vector3.ZERO, air_drag * delta)
 	velocity.x = horizontal.x
 	velocity.z = horizontal.z
-	target_speed = speed
-	_pay_step_debt(delta)
-
-	_fall_speed = maxf(0.0, -velocity.y)
-	_move_with_steps(delta)
-
-	# приземление
-	if is_on_floor() and not was_on_floor:
-		_on_landed()
-	was_on_floor = is_on_floor()
-
-	_update_facing(delta, direction, moving, strafe_mode)
-	_update_animation(delta)
 
 
-## Возвращает дистанцию, подаренную переносом на ступеньку: забирает часть
-## каждого следующего кадра, пока долг не погашен. Без этого подъём по лестнице
-## идёт быстрее ходьбы по ровному полу — на каждой проступи капает лишний шаг.
-func _pay_step_debt(delta: float) -> void:
-	if _step_debt <= 0.0:
-		return
-	var frame_len := Vector2(velocity.x, velocity.z).length() * delta
-	if frame_len < 0.0001:
-		return
-	var pay: float = minf(_step_debt, frame_len * step_debt_payback)
-	_step_debt -= pay
-	var slowdown: float = 1.0 - pay / frame_len
-	velocity.x *= slowdown
-	velocity.z *= slowdown
+## Перенос на ступеньку добавляет дистанцию, которую персонаж не прошёл ногами.
+## Гасить её разовым торможением нельзя — между ступенями получается «тормоз-
+## рывок-тормоз». Вместо этого идём по всей лестнице ровно медленнее: подарок
+## составляет одну и ту же долю проступи независимо от скорости, поэтому
+## коэффициент 1 − подарок/проступь одинаково верен и шагом, и бегом, и в прицеле.
+## Глубина проступи не задаётся числом, а измеряется по пройденному между
+## ступеньками: на одиночном пороге замедления не будет вовсе.
+func _stair_slowdown(delta: float) -> float:
+	_stair_travel += Vector2(velocity.x, velocity.z).length() * delta
+	var wanted := 1.0
+	if _stair_cycle > 0.01 and _stair_travel < _stair_cycle:
+		wanted = clampf(1.0 - _stair_shift / _stair_cycle, stair_speed_min, 1.0)
+	_stair_factor = lerpf(_stair_factor, wanted, clampf(delta * 10.0, 0.0, 1.0))
+	return _stair_factor
 
 
 ## Гасит анимации прыжка и просаживает камеру тем сильнее, чем жёстче удар.
@@ -591,11 +604,12 @@ func _move_with_steps(delta: float) -> void:
 
 	if not _find_step_top(start, wanted):
 		return
-	# Перенос вперёд мгновенный: картинке отдаём долг через _step_lag, чтобы не
-	# было рывка, а физике — через _step_debt, чтобы не набегала лишняя скорость.
+	# Перенос вперёд мгновенный: картинке он возвращается через _step_lag, чтобы
+	# не было рывка, а скорости — через ровное замедление в _stair_slowdown.
 	var shift := Vector3(_step_top.x - global_position.x, 0.0, _step_top.z - global_position.z)
-	var moved := Vector2(gained.x + shift.x, gained.z + shift.z).length()
-	_step_debt += maxf(0.0, moved - Vector2(wanted.x, wanted.z).length())
+	_stair_shift = Vector2(shift.x, shift.z).length()
+	_stair_cycle = clampf(_stair_travel + _stair_shift, _stair_shift * 1.5, 3.0)
+	_stair_travel = 0.0
 	_step_lag = (_step_lag - shift).limit_length(step_forward_reach * 2.0)
 	step_count += 1
 	global_position = _step_top
@@ -690,7 +704,8 @@ func _emote_physics(delta: float) -> void:
 
 ## Поворот корпуса: в свободном режиме — по направлению бега,
 ## в режиме прицела — вслед за камерой, с анимацией разворота на месте.
-func _update_facing(delta: float, direction: Vector3, moving: bool, strafe_mode: bool) -> void:
+func _update_facing(delta: float, strafe_mode: bool) -> void:
+	var moving := move_amount > 0.1
 	var target := model_yaw
 
 	if strafe_mode:
@@ -706,7 +721,7 @@ func _update_facing(delta: float, direction: Vector3, moving: bool, strafe_mode:
 		if not moving and not turning_in_place:
 			target = model_yaw          # стоим — корпус не крутится за мышкой
 	elif moving:
-		target = atan2(-direction.x, -direction.z)
+		target = atan2(-move_dir.x, -move_dir.z)
 
 	var rate := turn_speed
 	if turning_in_place:
@@ -810,9 +825,13 @@ func _update_step_smoothing(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	_update_step_smoothing(delta)
+	_update_camera(delta)
+
+
+func _update_camera(delta: float) -> void:
 	cam_yaw.rotation.y = yaw
 	cam_pitch.rotation.x = pitch
-	_update_step_smoothing(delta)
 	_update_eye_camera(delta)
 
 	# плавное смещение «через плечо» и дистанция
