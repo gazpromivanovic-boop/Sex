@@ -90,9 +90,8 @@ func fit() -> void:
 		# с точкой опоры, и вся математика вокруг (камера, ступеньки) считает
 		# высоту от земли, а не от произвольной точки внутри модели
 		if absf(bounds.position.y) > max_align_shift:
-			push_warning("BodyCollider: низ %s оказался на %.2f м от начала координат — "
-				% [root.name, bounds.position.y]
-				+ "это больше max_align_shift, посадка пропущена.")
+			push_warning("BodyCollider: низ %s оказался на %.2f м от начала координат, это больше max_align_shift — посадка пропущена."
+				% [root.name, bounds.position.y])
 		else:
 			root.position.y -= bounds.position.y
 			bounds.position.y = 0.0
@@ -109,8 +108,9 @@ func _measure(root: Node3D, body: Node3D) -> AABB:
 	for node in _descendants(root):
 		var points: Array[Vector3] = []
 		if node is VisualInstance3D:
-			var local: AABB = (node as VisualInstance3D).get_aabb()
-			var xf := to_body * node.global_transform
+			var visual := node as VisualInstance3D
+			var local := visual.get_aabb()
+			var xf := to_body * visual.global_transform
 			for i in 8:
 				points.append(xf * local.get_endpoint(i))
 		elif measure_bones and node is Skeleton3D:
