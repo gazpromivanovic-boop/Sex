@@ -1,0 +1,176 @@
+[gd_scene load_steps=28 format=3]
+
+[ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+[ext_resource type="PackedScene" path="res://assets/models/player.glb" id="2_model"]
+[ext_resource type="Texture2D" path="res://assets/textures/man_body.jpg" id="3_texture"]
+
+[sub_resource type="StandardMaterial3D" id="Material_body"]
+resource_name = "PlayerBody4K"
+albedo_texture = ExtResource("3_texture")
+texture_filter = 5
+roughness = 0.8
+metallic_specular = 0.5
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
+radius = 0.32
+height = 1.8
+
+[sub_resource type="AnimationNodeAnimation" id="Anim_idle"]
+animation = &"Idle"
+
+[sub_resource type="AnimationNodeAnimation" id="Anim_walk"]
+animation = &"Walk"
+
+[sub_resource type="AnimationNodeAnimation" id="Anim_walk_back"]
+animation = &"Walk"
+play_mode = 1
+
+[sub_resource type="AnimationNodeAnimation" id="Anim_strafe_left"]
+animation = &"StrafeLeft"
+
+[sub_resource type="AnimationNodeAnimation" id="Anim_strafe_right"]
+animation = &"StrafeRight"
+
+[sub_resource type="AnimationNodeBlendSpace2D" id="BlendSpace_loco"]
+blend_point_0/node = SubResource("Anim_idle")
+blend_point_0/pos = Vector2(0, 0)
+blend_point_1/node = SubResource("Anim_walk")
+blend_point_1/pos = Vector2(0, 1)
+blend_point_2/node = SubResource("Anim_walk_back")
+blend_point_2/pos = Vector2(0, -1)
+blend_point_3/node = SubResource("Anim_strafe_left")
+blend_point_3/pos = Vector2(-1, 0)
+blend_point_4/node = SubResource("Anim_strafe_right")
+blend_point_4/pos = Vector2(1, 0)
+min_space = Vector2(-1, -1)
+max_space = Vector2(1, 1)
+snap = Vector2(0.05, 0.05)
+x_label = "вбок"
+y_label = "вперёд"
+sync = true
+
+[sub_resource type="AnimationNodeAnimation" id="Anim_sprint"]
+animation = &"Sprint"
+
+[sub_resource type="AnimationNodeBlend2" id="Blend2_run"]
+sync = true
+
+[sub_resource type="AnimationNodeTimeScale" id="TimeScale_speed"]
+
+[sub_resource type="AnimationNodeAnimation" id="Anim_turn_left"]
+animation = &"TurnLeft"
+
+[sub_resource type="AnimationNodeOneShot" id="OneShot_turn_left"]
+fadein_time = 0.15
+fadeout_time = 0.25
+
+[sub_resource type="AnimationNodeAnimation" id="Anim_turn_right"]
+animation = &"TurnRight"
+
+[sub_resource type="AnimationNodeOneShot" id="OneShot_turn_right"]
+fadein_time = 0.15
+fadeout_time = 0.25
+
+[sub_resource type="AnimationNodeAnimation" id="Anim_jump"]
+animation = &"Jump"
+
+[sub_resource type="AnimationNodeTimeScale" id="TimeScale_jump"]
+
+[sub_resource type="AnimationNodeOneShot" id="OneShot_jump"]
+fadein_time = 0.05
+fadeout_time = 0.22
+
+[sub_resource type="AnimationNodeAnimation" id="Anim_run_jump"]
+animation = &"RunJump"
+
+[sub_resource type="AnimationNodeTimeScale" id="TimeScale_run_jump"]
+
+[sub_resource type="AnimationNodeOneShot" id="OneShot_run_jump"]
+fadein_time = 0.05
+fadeout_time = 0.2
+
+[sub_resource type="AnimationNodeAnimation" id="Anim_emote"]
+animation = &"EmoteHipHop"
+
+[sub_resource type="AnimationNodeOneShot" id="OneShot_emote"]
+fadein_time = 0.25
+fadeout_time = 0.3
+
+[sub_resource type="AnimationNodeBlendTree" id="BlendTree_player"]
+graph_offset = Vector2(-460, -260)
+nodes/Locomotion/node = SubResource("BlendSpace_loco")
+nodes/Locomotion/position = Vector2(-320, 120)
+nodes/SprintAnim/node = SubResource("Anim_sprint")
+nodes/SprintAnim/position = Vector2(-320, 320)
+nodes/RunBlend/node = SubResource("Blend2_run")
+nodes/RunBlend/position = Vector2(-80, 160)
+nodes/Speed/node = SubResource("TimeScale_speed")
+nodes/Speed/position = Vector2(140, 160)
+nodes/TurnLeftAnim/node = SubResource("Anim_turn_left")
+nodes/TurnLeftAnim/position = Vector2(140, -60)
+nodes/TurnLeftShot/node = SubResource("OneShot_turn_left")
+nodes/TurnLeftShot/position = Vector2(360, 160)
+nodes/TurnRightAnim/node = SubResource("Anim_turn_right")
+nodes/TurnRightAnim/position = Vector2(360, -60)
+nodes/TurnRightShot/node = SubResource("OneShot_turn_right")
+nodes/TurnRightShot/position = Vector2(580, 160)
+nodes/JumpAnim/node = SubResource("Anim_jump")
+nodes/JumpAnim/position = Vector2(360, -240)
+nodes/JumpSpeed/node = SubResource("TimeScale_jump")
+nodes/JumpSpeed/position = Vector2(580, -240)
+nodes/JumpShot/node = SubResource("OneShot_jump")
+nodes/JumpShot/position = Vector2(800, 160)
+nodes/RunJumpAnim/node = SubResource("Anim_run_jump")
+nodes/RunJumpAnim/position = Vector2(580, -420)
+nodes/RunJumpSpeed/node = SubResource("TimeScale_run_jump")
+nodes/RunJumpSpeed/position = Vector2(800, -420)
+nodes/RunJumpShot/node = SubResource("OneShot_run_jump")
+nodes/RunJumpShot/position = Vector2(1020, 160)
+nodes/EmoteAnim/node = SubResource("Anim_emote")
+nodes/EmoteAnim/position = Vector2(1020, -600)
+nodes/EmoteShot/node = SubResource("OneShot_emote")
+nodes/EmoteShot/position = Vector2(1260, 160)
+nodes/output/position = Vector2(1500, 160)
+node_connections = [&"RunBlend", 0, &"Locomotion", &"RunBlend", 1, &"SprintAnim", &"Speed", 0, &"RunBlend", &"TurnLeftShot", 0, &"Speed", &"TurnLeftShot", 1, &"TurnLeftAnim", &"TurnRightShot", 0, &"TurnLeftShot", &"TurnRightShot", 1, &"TurnRightAnim", &"JumpSpeed", 0, &"JumpAnim", &"JumpShot", 0, &"TurnRightShot", &"JumpShot", 1, &"JumpSpeed", &"RunJumpSpeed", 0, &"RunJumpAnim", &"RunJumpShot", 0, &"JumpShot", &"RunJumpShot", 1, &"RunJumpSpeed", &"EmoteShot", 0, &"RunJumpShot", &"EmoteShot", 1, &"EmoteAnim", &"output", 0, &"EmoteShot"]
+
+[node name="Player" type="CharacterBody3D" groups=["player"]]
+collision_layer = 2
+collision_mask = 1
+floor_snap_length = 0.4
+script = ExtResource("1_player")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_body")
+
+[node name="Model" type="Node3D" parent="."]
+
+[node name="Character" parent="Model" instance=ExtResource("2_model")]
+
+[node name="Body" parent="Model/Character/Armature/Skeleton3D" index="0"]
+surface_material_override/0 = SubResource("Material_body")
+
+[node name="AnimationTree" type="AnimationTree" parent="."]
+tree_root = SubResource("BlendTree_player")
+active = false
+
+[node name="CameraPivot" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.45, 0)
+
+[node name="CameraPitch" type="Node3D" parent="CameraPivot"]
+
+[node name="SpringArm3D" type="SpringArm3D" parent="CameraPivot/CameraPitch"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.55, 0, 0)
+collision_mask = 1
+spring_length = 2.9
+margin = 0.2
+
+[node name="ThirdPersonCamera" type="Camera3D" parent="CameraPivot/CameraPitch/SpringArm3D"]
+current = true
+fov = 72.0
+near = 0.05
+
+[node name="FirstPersonCamera" type="Camera3D" parent="CameraPivot/CameraPitch"]
+top_level = true
+fov = 72.0
+near = 0.05
