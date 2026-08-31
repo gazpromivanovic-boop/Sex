@@ -10,16 +10,21 @@ extends Node3D
 ## живёт в файле импорта, его легко потерять при переимпорте, и подложка тогда
 ## играет один раз и замолкает — тихо и не сразу заметно.
 ##
-## Звуки синтезированы (tools/make_ambience.py). Прибой держится достойно, а
-## чайки слышно, что ненастоящие: это заглушка под запись с нормальной лицензией.
+## Прибой и ветер синтезированы (tools/make_ambience.py): ровный фон без швов
+## синтез даёт хорошо. Жизни он не даёт, поэтому поверх играет живая запись —
+## слой bed. Одной записи на всю сцену мало (слышно петлю), одного синтеза мало
+## (слышно синтез); вместе они закрывают слабости друг друга.
 
 @export var surf: AudioStream
 @export var wind: AudioStream
+## Живая запись поверх синтеза: чайки, дальний прибой, общий шум берега.
+@export var bed: AudioStream
 @export var gulls: Array[AudioStream] = []
 
 @export_group("Громкость, дБ")
 @export var surf_db: float = -8.0
 @export var wind_db: float = -20.0
+@export var bed_db: float = -11.0
 @export var gull_db: float = -6.0
 
 @export_group("Чайки")
@@ -44,6 +49,7 @@ func _ready() -> void:
 
 	_start_bed(surf, surf_db, "Surf")
 	_start_bed(wind, wind_db, "Wind")
+	_start_bed(bed, bed_db, "Bed")
 	_timer = randf_range(gull_pause.x, gull_pause.y)
 
 

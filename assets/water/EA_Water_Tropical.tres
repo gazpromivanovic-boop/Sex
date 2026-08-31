@@ -1,21 +1,17 @@
-[gd_resource type="ShaderMaterial" load_steps=4 format=3]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://s30cv12sb38f"]
 
-; Tropical - turquoise shore water. Values carried over 1:1 from the Unity
-; material Water_Experimental (Roadside Tales Backroad Bridges); colors
-; converted linear -> sRGB.
-
-[ext_resource type="Shader" path="res://assets/water/EA_CoolWater.gdshader" id="1_shader"]
-[ext_resource type="Texture2D" path="res://assets/water/EA_Water_Normal.tres" id="2_nmap"]
-[ext_resource type="Texture2D" path="res://assets/water/EA_Foam_Voronoi.tres" id="3_foam"]
+[ext_resource type="Shader" uid="uid://drc4uodha4ane" path="res://assets/water/EA_CoolWater.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" uid="uid://sarajcytxpgx" path="res://assets/water/EA_Water_Normal.tres" id="2_nmap"]
+[ext_resource type="Texture2D" uid="uid://byd17awl1gpfy" path="res://assets/water/EA_Foam_Voronoi.tres" id="3_foam"]
 
 [resource]
 render_priority = 0
 shader = ExtResource("1_shader")
 shader_parameter/shallow_color = Color(0.366, 0.959, 0.86, 0.6)
-shader_parameter/deep_color = Color(0.248, 0.566, 0.815, 1.0)
+shader_parameter/deep_color = Color(0.248, 0.566, 0.815, 1)
 shader_parameter/water_depth = 6.5
 shader_parameter/color_bands = 3
-shader_parameter/shore_glow_color = Color(0.906, 0.982, 1.0, 1.0)
+shader_parameter/shore_glow_color = Color(0.906, 0.982, 1, 1)
 shader_parameter/shore_glow_width = 0.477
 shader_parameter/specular_color = Color(1, 1, 1, 1)
 shader_parameter/specular_size = 20.28
@@ -32,9 +28,10 @@ shader_parameter/foam_cutoff = 0.3
 shader_parameter/foam_depth = 0.72
 shader_parameter/foam_speed = 0.35
 shader_parameter/foam_edge_break = 0.85
+shader_parameter/shore_edge_break = 0.25
 shader_parameter/foam_hardness = 0.85
 shader_parameter/foam_overlay = 0.0
-shader_parameter/caustics_tint = Color(0.798, 1.0, 0.931, 1.0)
+shader_parameter/caustics_tint = Color(0.798, 1, 0.931, 1)
 shader_parameter/caustics_strength = 0.3
 shader_parameter/caustics_scale = 0.0592
 shader_parameter/caustics_speed = 0.401

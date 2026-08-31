@@ -7,7 +7,7 @@
 [ext_resource type="Environment" uid="uid://chpiw32jtp8o0" path="res://scenes/default_env.tres" id="5_env"]
 [ext_resource type="PackedScene" uid="uid://c3m1dmld308di" path="res://assets/models/lobby.glb" id="6_lobby"]
 [ext_resource type="PackedScene" uid="uid://cdylusfe7yip5" path="res://assets/models/bathyscaphe.glb" id="7_sub"]
-[ext_resource type="Material" path="res://assets/water/EA_Water_Tropical.tres" id="8_water"]
+[ext_resource type="Material" uid="uid://s30cv12sb38f" path="res://assets/water/EA_Water_Tropical.tres" id="8_water"]
 [ext_resource type="Shader" uid="uid://jph5rxy37440" path="res://assets/shaders/sand.gdshader" id="9_sand"]
 [ext_resource type="Script" uid="uid://db054rf8qego0" path="res://scripts/material_painter.gd" id="10_painter"]
 [ext_resource type="Script" uid="uid://i25biqm4kfd" path="res://scripts/water_splash.gd" id="11_splash"]
@@ -16,9 +16,23 @@
 [ext_resource type="Script" uid="uid://vs8dr2i2g6iq" path="res://scripts/ambience.gd" id="14_amb"]
 [ext_resource type="AudioStream" uid="uid://yk5yculywkgo" path="res://assets/audio/surf_loop.wav" id="15_surf"]
 [ext_resource type="AudioStream" uid="uid://dg2qs4yd5povt" path="res://assets/audio/wind_loop.wav" id="16_wind"]
-[ext_resource type="AudioStream" uid="uid://dqrrrn2oc4m0w" path="res://assets/audio/gull_1.wav" id="17_g1"]
-[ext_resource type="AudioStream" uid="uid://dt332s062hjrm" path="res://assets/audio/gull_2.wav" id="18_g2"]
-[ext_resource type="AudioStream" uid="uid://gkdiewmguo7k" path="res://assets/audio/gull_3.wav" id="19_g3"]
+[ext_resource type="Script" uid="uid://dpeg0vqosvxut" path="res://scripts/scatter.gd" id="20_scatter"]
+[ext_resource type="PackedScene" uid="uid://c15fvl1rbuvlk" path="res://assets/models/rock_a.glb" id="21_ra"]
+[ext_resource type="PackedScene" uid="uid://davyxx82g2f0u" path="res://assets/models/rock_b.glb" id="22_rb"]
+[ext_resource type="PackedScene" uid="uid://qa28x68ahbv" path="res://assets/models/rock_c.glb" id="23_rc"]
+[ext_resource type="PackedScene" uid="uid://cxyle23e8cc6v" path="res://assets/models/rock_d.glb" id="24_rd"]
+[ext_resource type="PackedScene" uid="uid://dhygvto1qyqca" path="res://assets/models/log.glb" id="25_log"]
+[ext_resource type="PackedScene" uid="uid://b0n6b0707j2xi" path="res://assets/models/grass_patch.glb" id="26_gp"]
+[ext_resource type="PackedScene" uid="uid://cq1qug87gnhyv" path="res://assets/models/grass_dry.glb" id="27_gd"]
+[ext_resource type="PackedScene" uid="uid://bl5rvvbcavpq8" path="res://assets/models/lamp.glb" id="28_lamp"]
+[ext_resource type="PackedScene" uid="uid://ctiareu2h1ntw" path="res://assets/models/tile.glb" id="29_tile"]
+[ext_resource type="Script" uid="uid://ccor54t4w1cmm" path="res://scripts/row.gd" id="30_row"]
+[ext_resource type="Script" uid="uid://dvux5ba6r00g5" path="res://scripts/tide.gd" id="31_tide"]
+[ext_resource type="PackedScene" uid="uid://3lbof3odi51h" path="res://assets/models/fence.glb" id="32_fence"]
+[ext_resource type="PackedScene" uid="uid://q5qeijid3nf5" path="res://assets/models/log_b.glb" id="33_logb"]
+[ext_resource type="AudioStream" uid="uid://bojpd2lm817qs" path="res://assets/audio/sea_gulls.mp3" id="34_sea"]
+[ext_resource type="PackedScene" uid="uid://2cr1uov7d3w7" path="res://assets/models/cover_chair.glb" id="35_cchair"]
+[ext_resource type="Script" uid="uid://lvnlh60xdq54" path="res://scripts/ground_snap.gd" id="36_snap"]
 
 [sub_resource type="ShaderMaterial" id="SandMat"]
 render_priority = 0
@@ -83,30 +97,26 @@ target = NodePath("..")
 material = SubResource("SandMat")
 mesh_names = Array[String](["Terrain", "Mountains"])
 
-[node name="Water" type="MeshInstance3D" parent="Level" unique_id=596957695]
+[node name="Water" type="MeshInstance3D" parent="Level" unique_id=596957695 groups=["water"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.55, 10)
 cast_shadow = 0
 mesh = SubResource("WaterMesh")
+script = ExtResource("31_tide")
+far_water = NodePath("../WaterFar")
 
 [node name="House" parent="Level" unique_id=383974932 instance=ExtResource("12_house")]
 transform = Transform3D(0.86602527, 0, 0.50000024, 0, 1, 0, -0.50000024, 0, 0.86602527, -9.5, 0, -11)
 
 [node name="ChairPierA" parent="Level" unique_id=2057998200 instance=ExtResource("13_chair")]
-transform = Transform3D(-0.34202, 0, -0.9396927, 0, 1, 0, 0.9396927, 0, -0.34202, 1.55, 0.55, 3.4)
-
-[node name="ChairPierB" parent="Level" unique_id=1265436301 instance=ExtResource("13_chair")]
-transform = Transform3D(0.17364857, 0, 0.98480767, 0, 1, 0, -0.98480767, 0, 0.17364857, -1.6, 0.55, 5.8)
-
-[node name="ChairShore" parent="Level" unique_id=1275318129 instance=ExtResource("13_chair")]
-transform = Transform3D(0.5735765, 0, 0.819152, 0, 1, 0, -0.819152, 0, 0.5735765, -5.8, 0, -8.4)
+transform = Transform3D(0.99996907, 0.00047361085, 0.007848084, 0.007847756, 0.0004675085, -0.9999691, -0.00047719487, 0.9999999, 0.00046384337, 1.9937115, 0.78635913, 7.2976146)
 
 [node name="WaterFar" type="MeshInstance3D" parent="Level" unique_id=1021967821]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.62, 10)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.00079345703, -0.6215564, 9.997925)
 cast_shadow = 0
 mesh = SubResource("WaterFarMesh")
 
 [node name="Bathyscaphe" parent="Level" unique_id=703347742 instance=ExtResource("7_sub")]
-transform = Transform3D(0.93969256, 0, -0.34202027, 0, 1, 0, 0.34202027, 0, 0.93969256, 7.6, -3.6, 9.5)
+transform = Transform3D(2.2042239, 0, -3.1116006, 0, 3.813222, 0, 3.1116006, 0, 2.2042239, -0.783669, -22.332047, 127.62785)
 
 [node name="PassBlocker" type="StaticBody3D" parent="Level" unique_id=1372549680]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 6, -63)
@@ -114,10 +124,116 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 6, -63)
 [node name="Shape" type="CollisionShape3D" parent="Level/PassBlocker" unique_id=255091351]
 shape = SubResource("ArchBlock")
 
+[node name="CoverChairA2" parent="Level" unique_id=1389044489 instance=ExtResource("35_cchair")]
+transform = Transform3D(0.90630794, 0, -0.42261797, 0, 1, 0, 0.42261797, 0, 0.90630794, -6.8957024, 0.021000862, -7.3765974)
+script = ExtResource("36_snap")
+align_to_normal = true
+
+[node name="Boards" type="Node3D" parent="Level" unique_id=251655881]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.52, -7)
+script = ExtResource("30_row")
+scene = ExtResource("29_tile")
+count = 26
+spacing = 1.07
+base_rotation = Vector3(0, 90, 0)
+
+[node name="LampA" parent="Level" unique_id=968379461 instance=ExtResource("28_lamp")]
+transform = Transform3D(3.1391647e-07, 0, -1, 0, 1, 0, 1, 0, 3.1391647e-07, 2.15, 0.55, 2)
+
+[node name="LampB" parent="Level" unique_id=12062159 instance=ExtResource("28_lamp")]
+transform = Transform3D(3.1391647e-07, 0, -1, 0, 1, 0, 1, 0, 3.1391647e-07, 2.15, 0.55, 14)
+
+[node name="Rocks" type="Node3D" parent="Level" unique_id=571565031]
+script = ExtResource("20_scatter")
+scenes = Array[PackedScene]([ExtResource("21_ra"), ExtResource("22_rb"), ExtResource("23_rc"), ExtResource("24_rd")])
+count = 46
+seed_value = 4471
+area = Vector2(116, 46)
+area_center = Vector3(0, 0, -24)
+min_height = -1.4
+max_height = 0.4
+scale_range = Vector2(0.35, 1.2)
+
+[node name="Pebbles" type="Node3D" parent="Level" unique_id=98082553]
+script = ExtResource("20_scatter")
+scenes = Array[PackedScene]([ExtResource("21_ra"), ExtResource("22_rb"), ExtResource("24_rd")])
+count = 130
+seed_value = 6120
+area = Vector2(118, 22)
+area_center = Vector3(0, 0, -8)
+min_height = -1.6
+max_height = 0.6
+scale_range = Vector2(0.05, 0.16)
+sink = 0.04
+
+[node name="Logs" type="Node3D" parent="Level" unique_id=1934519335]
+script = ExtResource("20_scatter")
+scenes = Array[PackedScene]([ExtResource("25_log"), ExtResource("33_logb")])
+count = 9
+seed_value = 8812
+area = Vector2(100, 34)
+area_center = Vector3(0, 0, -26)
+min_height = 0.1
+max_height = 1.6
+scale_range = Vector2(0.7, 1.3)
+tilt_deg = 6.0
+
+[node name="Grass" type="Node3D" parent="Level" unique_id=1988770488]
+script = ExtResource("20_scatter")
+scenes = Array[PackedScene]([ExtResource("26_gp"), ExtResource("27_gd")])
+count = 220
+seed_value = 3305
+area = Vector2(112, 40)
+area_center = Vector3(0, 0, -28)
+min_height = 0.7
+max_height = 9.0
+scale_range = Vector2(0.6, 1.6)
+sink = 0.06
+tilt_deg = 5.0
+
+[node name="Fence" type="Node3D" parent="Level" unique_id=267082246]
+transform = Transform3D(0.96592593, 0, 0.2588187, 0, 1, 0, -0.2588187, 0, 0.96592593, -27, 0, -34)
+script = ExtResource("30_row")
+scene = ExtResource("32_fence")
+count = 9
+spacing = 2.82
+base_rotation = Vector3(0, 90, 0)
+snap_to_ground = true
+jitter = Vector2(0.12, 0.06)
+yaw_jitter = 5.0
+roll_jitter = 3.0
+
+[node name="FenceRuins" type="Node3D" parent="Level" unique_id=609046072]
+transform = Transform3D(0.8191522, 0, -0.5735762, 0, 1, 0, 0.5735762, 0, 0.8191522, 21, 0, -31)
+script = ExtResource("30_row")
+scene = ExtResource("32_fence")
+count = 4
+spacing = 3.6
+base_rotation = Vector3(0, 90, 0)
+snap_to_ground = true
+jitter = Vector2(0.4, 0.1)
+yaw_jitter = 14.0
+roll_jitter = 9.0
+
+[node name="CoverChairPier" parent="Level" unique_id=776882602 instance=ExtResource("35_cchair")]
+transform = Transform3D(0.9915619, 0, 0.12963414, 0, 1, 0, -0.12963414, 0, 0.9915619, -1.5, 0.7, 12.6)
+script = ExtResource("36_snap")
+
+[node name="CoverChairA" parent="Level" unique_id=388353540 instance=ExtResource("35_cchair")]
+transform = Transform3D(0.90630794, 0, -0.42261797, 0, 1, 0, 0.42261797, 0, 0.90630794, -12.5, 1, -24.5)
+script = ExtResource("36_snap")
+align_to_normal = true
+
+[node name="CoverChairB" parent="Level" unique_id=471594548 instance=ExtResource("35_cchair")]
+transform = Transform3D(0.86602527, 0, 0.50000024, 0, 1, 0, -0.50000024, 0, 0.86602527, -9, 1, -25.8)
+script = ExtResource("36_snap")
+align_to_normal = true
+
 [node name="Ambience" type="Node3D" parent="." unique_id=1203785062]
 script = ExtResource("14_amb")
 surf = ExtResource("15_surf")
 wind = ExtResource("16_wind")
+bed = ExtResource("34_sea")
 listener = NodePath("../Player")
 
 [node name="Player" parent="." unique_id=1776984483 instance=ExtResource("2_player")]
@@ -145,6 +261,8 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("4_wheel")
 

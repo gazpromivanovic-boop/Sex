@@ -32,6 +32,8 @@ from blender_kit import export_glb, render_previews
 
 TEMP = "C:/Users/GamePC/AppData/Local/Temp"
 ROCKS = TEMP + "/rocks"
+SCRATCH = (TEMP + "/claude/C--Users-GamePC-Documents-------"
+           "/7f41b276-9646-414b-9cc4-60a329a78e88/scratchpad")
 
 PROPS = [
     {
@@ -76,6 +78,11 @@ PROPS = [
      "name": "fence", "height": 1.25, "budget": 1600, "texture": 1024},
     {"src": ROCKS + "/log/source/unpacked/Log_fbx.fbx",
      "name": "log_b", "height": 0.55, "budget": 1200, "texture": 512},
+    # Стул под чехлом. В .mtl прописаны ek_europa*.jpg, которых в архиве нет,
+    # поэтому текстуру задаём руками — иначе материал приезжает чёрным.
+    {"src": SCRATCH + "/coverchair/Cover_Chair.obj",
+     "name": "cover_chair", "height": 1.02, "budget": 4000, "texture": 512,
+     "texture_file": SCRATCH + "/coverchair/oak.jpg"},
 ]
 
 OUT_DIR = "assets/models"
@@ -113,6 +120,26 @@ def cap_textures(max_size):
             k = float(max_size) / max(w, h)
             img.scale(max(1, int(w * k)), max(1, int(h * k)))
             print("###        текстура %dx%d -> %dx%d" % (w, h, img.size[0], img.size[1]))
+
+
+def force_texture(obj, path):
+    """Собирает материал из одной присланной карты.
+
+    Часть моделей приходит с .mtl, который ссылается на текстуры, не попавшие в
+    архив. Blender молча оставляет пустой слот, и предмет выходит чёрным. Проще
+    выбросить исходные материалы и собрать свой, чем чинить битые пути.
+    """
+    mat = bpy.data.materials.new(obj.name + "_mat")
+    mat.use_nodes = True
+    nodes = mat.node_tree.nodes
+    bsdf = next(n for n in nodes if n.type == "BSDF_PRINCIPLED")
+    tex = nodes.new("ShaderNodeTexImage")
+    tex.image = bpy.data.images.load(path)
+    tex.location = (bsdf.location.x - 320, bsdf.location.y)
+    mat.node_tree.links.new(bsdf.inputs["Base Color"], tex.outputs["Color"])
+    bsdf.inputs["Roughness"].default_value = 0.8
+    obj.data.materials.clear()
+    obj.data.materials.append(mat)
 
 
 def prepare(prop):
@@ -189,6 +216,8 @@ def prepare(prop):
                     obj.location.z - lo[2])
     bpy.ops.object.transform_apply(location=True)
 
+    if prop.get("texture_file"):
+        force_texture(obj, prop["texture_file"])
     cap_textures(prop.get("texture", 1024))
 
     lo, hi = bounds()
@@ -200,7 +229,12 @@ def prepare(prop):
 
 
 def main():
+    # Имена после "--" ограничивают прогон: перегонять все модели ради одной
+    # новой — минуты впустую, а исходники старых давно вычищены из temp.
+    only = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     for prop in PROPS:
+        if only and prop["name"] not in only:
+            continue
         obj = prepare(prop)
         if obj is None:
             continue

@@ -53,23 +53,38 @@ func build() -> void:
 
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
+
+	# Сначала считаем все места, и только потом ставим копии. Луч, пущенный
+	# после add_child, попадает в коллайдер уже поставленной копии — и в
+	# собственный, и в соседский, — а ряд от этого ползёт вверх.
+	var spots: Array[Vector3] = []
+	var turns: Array[Vector3] = []
 	for i in count:
-		var inst := scene.instantiate() as Node3D
-		add_child(inst)
-		inst.position = Vector3(
+		var world := global_transform * Vector3(
 			rng.randf_range(-jitter.x, jitter.x),
 			rng.randf_range(-jitter.y, jitter.y),
 			i * spacing)
-		if snap_to_ground:
-			var space := get_world_3d().direct_space_state
-			if space != null:
-				var origin := inst.global_position + Vector3.UP * snap_from
-				var q := PhysicsRayQueryParameters3D.create(
-					origin, origin + Vector3.DOWN * snap_length)
-				var hit := space.intersect_ray(q)
-				if not hit.is_empty():
-					inst.global_position = hit["position"]
-		inst.rotation = Vector3(
+		spots.append(_drop(world) if snap_to_ground else world)
+		turns.append(Vector3(
 			deg_to_rad(base_rotation.x + rng.randf_range(-roll_jitter, roll_jitter)),
 			deg_to_rad(base_rotation.y + rng.randf_range(-yaw_jitter, yaw_jitter)),
-			deg_to_rad(base_rotation.z))
+			deg_to_rad(base_rotation.z)))
+
+	for i in spots.size():
+		var inst := scene.instantiate() as Node3D
+		add_child(inst)
+		inst.global_position = spots[i]
+		inst.rotation = turns[i]
+
+
+## Опускает точку на поверхность. Не нашлось поверхности — оставляем как есть:
+## ряд в воздухе заметен и чинится, ряд, провалившийся в никуда, — нет.
+func _drop(point: Vector3) -> Vector3:
+	var space := get_world_3d().direct_space_state
+	if space == null:
+		return point
+	var origin := point + Vector3.UP * snap_from
+	var query := PhysicsRayQueryParameters3D.create(
+		origin, origin + Vector3.DOWN * snap_length)
+	var hit := space.intersect_ray(query)
+	return hit["position"] if not hit.is_empty() else point
