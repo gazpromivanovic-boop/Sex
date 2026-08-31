@@ -1,3 +1,6 @@
 .godot/
 *.import.bak
 export_presets.cfg
+
+# превью пересобираются скриптом, в репозитории им делать нечего
+tools/preview/
