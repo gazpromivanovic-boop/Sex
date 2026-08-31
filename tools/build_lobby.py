@@ -177,35 +177,6 @@ def build_terrain(mats):
     smooth(obj, 60.0)
     parts = [rename(obj, "Terrain-col", mats["sand"])]
 
-    rocks = []
-    for i, (x, y, r) in enumerate([(-20, 4.0, 1.5), (16, 2.5, 1.1), (22, 9.0, 1.8),
-                                   (-13, 1.0, 0.9), (10, -3.0, 1.3), (-26, 14.0, 1.2),
-                                   (28, 18.0, 1.6), (-31, -4.0, 1.4), (33, -8.0, 1.1)]):
-        rock = ball(r, (x, y, terrain_height(x, y) + r * 0.25),
-                    scale=(1.0, 0.8, 0.6), segments=12, rings=7)
-        rock.rotation_euler = (0, 0, i * 0.7)
-        rocks.append(rock)
-    parts.append(join(rocks, "Rocks-col", mats["rock"]))
-
-    # Галька у линии прибоя. Кладём по псевдослучайной решётке, а не в цикле по
-    # углу: ровное кольцо камней вокруг берега читается декорацией, а не пляжем.
-    pebbles = []
-    seed = 12345
-    for i in range(90):
-        seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF
-        x = (seed / 0x7FFFFFFF) * 76.0 - 38.0
-        seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF
-        y = P["shore_y"] + (seed / 0x7FFFFFFF) * 16.0 - 9.0
-        seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF
-        r = 0.10 + (seed / 0x7FFFFFFF) * 0.22
-        if abs(x) < 3.6:
-            continue                          # под пирсом галька не нужна
-        p = ball(r, (x, y, terrain_height(x, y) + r * 0.15),
-                 scale=(1.0, 0.85, 0.45), segments=8, rings=5)
-        p.rotation_euler = (0, 0, i * 0.9)
-        pebbles.append(p)
-    parts.append(join(pebbles, "Pebbles", mats["rock"]))
-
     return parts
 
 
@@ -280,22 +251,14 @@ def build_pier(mats):
     w, top = P["pier_width"], P["pier_z"]
     y0, y1 = P["shore_y"] + 1.0, P["shore_y"] - P["pier_len"]
 
-    planks = []
-    y = y0
-    while y > y1:
-        planks.append(box((0, y - P["plank"] / 2, top - 0.06),
-                          (w, P["plank"] * 0.88, 0.12)))
-        y -= P["plank"]
-    # продольные балки под настилом
+    # Настил: доски — присланная модель, её кладёт Row в сцене. Здесь остаётся
+    # только сплошная плита-основание. Она же решает старую беду: коллизия по
+    # мешу из отдельных досок с зазорами дырявая, сквозь неё проваливались.
+    deck = [box((0, (y0 + y1) / 2, top - 0.09), (w - 0.02, y0 - y1, 0.12))]
     for sx in (-1, 1):
-        planks.append(box((sx * (w / 2 - 0.3), (y0 + y1) / 2, top - 0.28),
-                          (0.22, y0 - y1, 0.32)))
-    # Сплошная плита под досками. Настил собран из отдельных досок с зазорами
-    # по три сантиметра, и коллизия по такому мешу дырявая — сквозь неё можно
-    # провалиться. Плита прячется в толще досок, её не видно, но пол под ногами
-    # становится непрерывным.
-    planks.append(box((0, (y0 + y1) / 2, top - 0.085), (w - 0.02, y0 - y1, 0.09)))
-    parts = [join(planks, "Pier_Deck-col", mats["wood"])]
+        deck.append(box((sx * (w / 2 - 0.3), (y0 + y1) / 2, top - 0.32),
+                        (0.22, y0 - y1, 0.32)))
+    parts = [join(deck, "Pier_Deck-col", mats["wood_dark"])]
 
     pilings = []
     y = y0 - 1.5

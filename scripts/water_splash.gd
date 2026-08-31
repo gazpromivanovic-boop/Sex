@@ -30,6 +30,7 @@ extends GPUParticles3D
 @export var splash_speed: float = 2.2
 
 var _body: Node3D
+var _water: Node3D
 var _last_pos: Vector3
 var _speed: float = 0.0
 
@@ -41,9 +42,9 @@ func _ready() -> void:
 		if found != null:
 			_body = found
 	if not water_path.is_empty():
-		var water := get_node_or_null(water_path) as Node3D
-		if water != null:
-			water_level = water.global_position.y
+		_water = get_node_or_null(water_path) as Node3D
+		if _water != null:
+			water_level = _water.global_position.y
 
 	top_level = true          # эмиттер живёт в мире, а не в системе персонажа
 	emitting = false
@@ -101,6 +102,10 @@ func _physics_process(delta: float) -> void:
 	_last_pos = pos
 	_speed = lerpf(_speed, moved / maxf(delta, 0.0001), clampf(delta * 12.0, 0.0, 1.0))
 
+	# уровень читаем каждый кадр: вода дышит приливом, запомнить его при старте
+	# значило бы, что брызги отстают от берега на полметра
+	if _water != null:
+		water_level = _water.global_position.y
 	var depth := water_level - pos.y          # больше нуля — ступни под водой
 	var wading := depth > -0.05 and depth < wade_depth
 	emitting = wading and _speed > min_speed
