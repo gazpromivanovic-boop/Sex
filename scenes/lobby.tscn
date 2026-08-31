@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
@@ -13,6 +13,15 @@
 [ext_resource type="Script" path="res://scripts/water_splash.gd" id="11_splash"]
 [ext_resource type="PackedScene" path="res://assets/models/house.glb" id="12_house"]
 [ext_resource type="PackedScene" path="res://assets/models/chair.glb" id="13_chair"]
+[ext_resource type="Script" path="res://scripts/ambience.gd" id="14_amb"]
+[ext_resource type="AudioStream" path="res://assets/audio/surf_loop.wav" id="15_surf"]
+[ext_resource type="AudioStream" path="res://assets/audio/wind_loop.wav" id="16_wind"]
+[ext_resource type="AudioStream" path="res://assets/audio/gull_1.wav" id="17_g1"]
+[ext_resource type="AudioStream" path="res://assets/audio/gull_2.wav" id="18_g2"]
+[ext_resource type="AudioStream" path="res://assets/audio/gull_3.wav" id="19_g3"]
+
+[sub_resource type="BoxShape3D" id="ArchBlock"]
+size = Vector3(9, 14, 2)
 
 [sub_resource type="ShaderMaterial" id="SandMat"]
 shader = ExtResource("9_sand")
@@ -60,7 +69,7 @@ directional_shadow_max_distance = 140.0
 script = ExtResource("10_painter")
 target = NodePath("..")
 material = SubResource("SandMat")
-mesh_names = Array[String](["Land", "Seabed", "Dunes"])
+mesh_names = Array[String](["Terrain"])
 
 [node name="Water" type="MeshInstance3D" parent="Level"]
 position = Vector3(0, -0.55, 10)
@@ -86,6 +95,19 @@ rotation = Vector3(0, 0.959931, 0)
 [node name="Bathyscaphe" parent="Level" instance=ExtResource("7_sub")]
 position = Vector3(7.6, -3.6, 9.5)
 rotation = Vector3(0, -0.349066, 0)
+
+[node name="ArchBlocker" type="StaticBody3D" parent="Level"]
+position = Vector3(15, 6, -44)
+
+[node name="Shape" type="CollisionShape3D" parent="Level/ArchBlocker"]
+shape = SubResource("ArchBlock")
+
+[node name="Ambience" type="Node3D" parent="."]
+script = ExtResource("14_amb")
+surf = ExtResource("15_surf")
+wind = ExtResource("16_wind")
+gulls = Array[AudioStream]([ExtResource("17_g1"), ExtResource("18_g2"), ExtResource("19_g3")])
+listener = NodePath("../Player")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 position = Vector3(0, 0.9, -3)
