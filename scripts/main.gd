@@ -13,11 +13,19 @@ func _ready() -> void:
 func _physics_process(_delta: float) -> void:
 	# если персонаж каким-то образом провалился — возвращаем на старт
 	if player.global_position.y < -12.0:
-		player.velocity = Vector3.ZERO
-		player.global_transform = spawn_transform
+		_respawn()
+
+
+func _respawn() -> void:
+	player.velocity = Vector3.ZERO
+	player.global_transform = spawn_transform
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Ручной возврат: застрять в геометрии можно всегда, и ждать падения ниже
+	# минус двенадцати, чтобы выбраться, — так себе способ.
+	if event.is_action_pressed("respawn"):
+		_respawn()
 	if event.is_action_pressed("ui_cancel"):
 		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE

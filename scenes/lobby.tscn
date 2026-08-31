@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
@@ -36,6 +36,12 @@ shader_parameter/ripple_scale = 3.4
 shader_parameter/grain_strength = 0.25
 shader_parameter/grain_scale = 42.0
 
+[sub_resource type="PlaneMesh" id="WaterFarMesh"]
+material = ExtResource("8_water")
+size = Vector2(4000, 4000)
+subdivide_width = 40
+subdivide_depth = 40
+
 [sub_resource type="PlaneMesh" id="WaterMesh"]
 material = ExtResource("8_water")
 size = Vector2(220, 220)
@@ -69,7 +75,7 @@ directional_shadow_max_distance = 140.0
 script = ExtResource("10_painter")
 target = NodePath("..")
 material = SubResource("SandMat")
-mesh_names = Array[String](["Terrain"])
+mesh_names = Array[String](["Terrain", "Mountains", "Arch"])
 
 [node name="Water" type="MeshInstance3D" parent="Level"]
 position = Vector3(0, -0.55, 10)
@@ -92,12 +98,17 @@ rotation = Vector3(0, 1.396263, 0)
 position = Vector3(-5.8, 0.0, -8.4)
 rotation = Vector3(0, 0.959931, 0)
 
+[node name="WaterFar" type="MeshInstance3D" parent="Level"]
+position = Vector3(0, -0.62, 10)
+mesh = SubResource("WaterFarMesh")
+cast_shadow = 0
+
 [node name="Bathyscaphe" parent="Level" instance=ExtResource("7_sub")]
 position = Vector3(7.6, -3.6, 9.5)
 rotation = Vector3(0, -0.349066, 0)
 
 [node name="ArchBlocker" type="StaticBody3D" parent="Level"]
-position = Vector3(15, 6, -44)
+position = Vector3(15, 6, -63)
 
 [node name="Shape" type="CollisionShape3D" parent="Level/ArchBlocker"]
 shape = SubResource("ArchBlock")

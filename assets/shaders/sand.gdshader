@@ -21,6 +21,18 @@ group_uniforms wet;
 uniform float water_level = -0.55;
 uniform float wet_fade : hint_range(0.01, 4.0) = 0.9;
 
+group_uniforms bands;
+// Выше этой высоты песок сменяется камнем, ещё выше — снегом. Пояса нужны
+// потому, что одним материалом покрыт весь рельеф: и пляж, и горы.
+uniform vec3 rock_color : source_color = vec3(0.35, 0.32, 0.30);
+uniform vec3 snow_color : source_color = vec3(0.92, 0.94, 0.97);
+uniform float rock_level = 12.0;
+uniform float rock_fade = 14.0;
+uniform float snow_level = 46.0;
+uniform float snow_fade = 22.0;
+// На отвесной стене снег не держится — маскируем по крутизне.
+uniform float snow_min_flatness : hint_range(0.0, 1.0) = 0.34;
+
 group_uniforms ripples;
 uniform float ripple_strength : hint_range(0.0, 1.0) = 0.35;
 uniform float ripple_scale : hint_range(0.1, 20.0) = 3.4;
@@ -28,6 +40,7 @@ uniform float grain_strength : hint_range(0.0, 1.0) = 0.25;
 uniform float grain_scale : hint_range(1.0, 120.0) = 42.0;
 
 varying vec3 world_pos;
+varying vec3 world_normal;
 
 
 float hash(vec2 p) {
@@ -71,6 +84,7 @@ float ripple_height(vec2 p) {
 
 void vertex() {
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	world_normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
 
 
@@ -87,11 +101,16 @@ void fragment() {
 	vec2 d_grain = vec2(value_noise((p + vec2(e, 0.0)) * grain_scale) - g,
 						value_noise((p + vec2(0.0, e)) * grain_scale) - g) / e;
 
-	vec3 n = normalize(vec3(-(d_ripple.x * ripple_strength * 0.12
-							  + d_grain.x * grain_strength * 0.004),
-							1.0,
-							-(d_ripple.y * ripple_strength * 0.12
-							  + d_grain.y * grain_strength * 0.004)));
+	// Рябь накладывается НА настоящую нормаль поверхности, а не заменяет её.
+	// Раньше нормаль строилась как (dx, 1, dz) — то есть считалось, что земля
+	// всегда горизонтальна, и на отвесных стенах свет ложился неправильно.
+	float flatness = clamp(world_normal.y, 0.0, 1.0);
+	vec3 bump = vec3(-(d_ripple.x * ripple_strength * 0.12
+					   + d_grain.x * grain_strength * 0.004),
+					 0.0,
+					 -(d_ripple.y * ripple_strength * 0.12
+					   + d_grain.y * grain_strength * 0.004));
+	vec3 n = normalize(world_normal + bump * flatness);
 	NORMAL = (VIEW_MATRIX * vec4(n, 0.0)).xyz;
 
 	// мокрый песок ниже уровня воды: темнее и заметно глаже
@@ -104,8 +123,18 @@ void fragment() {
 	// гребни ряби подсвечены, впадины в тени — так рельеф читается и в упор
 	base *= mix(0.94, 1.06, h);
 
+	// пояса по высоте: песок -> камень -> снег. Границы размыты шумом, иначе
+	// они читаются горизонтальными полосами, как на торте
+	float edge = fbm(p * 0.05) * 8.0 - 4.0;
+	float rocky = smoothstep(rock_level, rock_level + rock_fade, world_pos.y + edge);
+	base = mix(base, rock_color * (0.85 + patch * 0.5), rocky);
+
+	float snowy = smoothstep(snow_level, snow_level + snow_fade, world_pos.y + edge);
+	snowy *= smoothstep(snow_min_flatness, snow_min_flatness + 0.3, flatness);
+	base = mix(base, snow_color, snowy);
+
 	ALBEDO = base;
-	ROUGHNESS = mix(0.95, 0.35, wet);
-	SPECULAR = mix(0.25, 0.6, wet);
+	ROUGHNESS = mix(mix(0.95, 0.35, wet), 0.42, max(rocky, snowy * 0.6));
+	SPECULAR = mix(0.25, 0.6, max(wet, snowy));
 	METALLIC = 0.0;
 }
