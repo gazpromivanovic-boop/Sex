@@ -31,6 +31,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from blender_kit import export_glb, render_previews
 
 TEMP = "C:/Users/GamePC/AppData/Local/Temp"
+ROCKS = TEMP + "/rocks"
 
 PROPS = [
     {
@@ -47,6 +48,29 @@ PROPS = [
         "budget": 6000,
         "texture": 512,
     },
+    # Камни со Sketchfab. Бюджет мелкий: их будет много, и каждый лишний
+    # треугольник умножается на количество разбросанных копий.
+    {"src": ROCKS + "/obj-nat-rock-01/source/c5233a6c6cec48bcb40fcfc665521932.obj",
+     "name": "rock_a", "height": 1.8, "budget": 900, "texture": 512},
+    {"src": ROCKS + "/rock/source/untitled.obj",
+     "name": "rock_b", "height": 2.6, "budget": 1200, "texture": 512},
+    {"src": ROCKS + "/rock-photogrammetry-scan/source/Rock.obj",
+     "name": "rock_c", "height": 3.4, "budget": 1500, "texture": 1024},
+    {"src": ROCKS + "/rock-rock/source/model/model.dae",
+     "name": "rock_d", "height": 2.1, "budget": 900, "texture": 512},
+    # Фонарь стоит вертикально, поэтому height — это его полная высота.
+    {"src": ROCKS + "/street-light-lamp-spotlight-10mb/source/02.fbx",
+     "name": "lamp", "height": 4.6, "budget": 2500, "texture": 1024},
+    # Бревно лежит, и по вертикали у него всего лишь толщина ствола.
+    {"src": ROCKS + "/log-photogrammetrised/source/log1_low.obj",
+     "name": "log", "height": 0.62, "budget": 1400, "texture": 512},
+    {"src": ROCKS + "/pier-ground-tile/source/Pier Ground Tile.obj",
+     "name": "tile", "height": 0.14, "budget": 600, "texture": 1024},
+    # Трава: настоящие кустики вместо моих конусов.
+    {"src": ROCKS + "/grass-patches/source/grasspatches.fbx",
+     "name": "grass_patch", "height": 0.55, "budget": 900, "texture": 512},
+    {"src": ROCKS + "/dry-grass/source/sketchfabGrass.fbx",
+     "name": "grass_dry", "height": 0.45, "budget": 700, "texture": 512},
 ]
 
 OUT_DIR = "assets/models"
@@ -91,7 +115,16 @@ def prepare(prop):
     if not os.path.exists(prop["src"]):
         print("### нет файла:", prop["src"])
         return None
-    bpy.ops.import_scene.fbx(filepath=prop["src"])
+    ext = os.path.splitext(prop["src"])[1].lower()
+    if ext == ".fbx":
+        bpy.ops.import_scene.fbx(filepath=prop["src"])
+    elif ext == ".obj":
+        bpy.ops.wm.obj_import(filepath=prop["src"])
+    elif ext == ".dae":
+        bpy.ops.wm.collada_import(filepath=prop["src"])
+    else:
+        print("### не знаю, как открыть", prop["src"])
+        return None
 
     meshes = [o for o in bpy.data.objects if o.type == "MESH"]
     if not meshes:
@@ -109,6 +142,17 @@ def prepare(prop):
     obj = bpy.context.object
     obj.name = prop["name"]
     obj.data.name = prop["name"]
+
+    # Отвязываем от родителя, сохраняя вид, и запекаем весь трансформ. У FBX
+    # сверху обычно висит пустышка со стократным масштабом (сантиметры против
+    # метров); transform_apply применяет только свой масштаб, родительский
+    # остаётся — фонарь из-за этого вышел высотой в четыреста шестьдесят метров.
+    if obj.parent is not None:
+        bpy.ops.object.select_all(action="DESELECT")
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+        bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
     # Режем с проверкой результата, а не одним расчётом. Decimate считает долю
     # по граням, а триангуляция после него добавляет треугольники сверху — с

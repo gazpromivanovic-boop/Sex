@@ -113,11 +113,15 @@ def terrain_height(x, y):
     # Скалы — часть рельефа, а не отдельные глыбы. Расставленные шарами они
     # читались галькой, между ними зияли щели, и пляж всё равно обрывался.
     # Поднятая стеной земля не имеет ни швов, ни дыр по построению.
-    out = max(abs(x) - P["beach_x"], y - P["beach_back"])
+    # Граница бухты извилистая. Прямая давала правильный прямоугольник со
+    # скруглёнными углами — сверху это читалось ванной, а не берегом.
+    side = P["beach_x"] + bnoise.noise(Vector((0.0, y * 0.028, 3.0))) * 11.0
+    back = P["beach_back"] + bnoise.noise(Vector((x * 0.026, 0.0, 7.0))) * 13.0
+    out = max(abs(x) - side, y - back)
     if out > -1.0:
         wall = P["cliff_h"] * smoothstep(-1.0, 34.0, out)
         # проход под арку: узкая щель в задней стене
-        if y > P["beach_back"] - 4.0:
+        if y > back - 6.0:
             # щель ровно под арку: шире — и она повисает в чистом поле
             # щель шире проёма арки: иначе за аркой видно узкую прорезь
             gap = smoothstep(P["arch_w"] * 0.78, P["arch_w"] * 1.25,
@@ -130,11 +134,12 @@ def terrain_height(x, y):
     h += bnoise.noise(Vector((x * 0.11, y * 0.11, 11.0))) * 0.30 * (0.2 + 0.8 * dune)
     h += bnoise.noise(Vector((x * 0.40, y * 0.40, 23.0))) * 0.07
     # на скалах шум крупнее и жёстче: у камня рельеф не такой, как у песка
-    rocky = smoothstep(-2.0, 20.0, max(abs(x) - P["beach_x"], y - P["beach_back"]))
+    rocky = smoothstep(-2.0, 20.0, out)
     if rocky > 0.0:
-        h += bnoise.noise(Vector((x * 0.021, y * 0.021, 41.0))) * 14.0 * rocky
-        h += bnoise.noise(Vector((x * 0.062, y * 0.062, 57.0))) * 4.5 * rocky
-        h += bnoise.noise(Vector((x * 0.19, y * 0.19, 73.0))) * 1.2 * rocky
+        h += bnoise.noise(Vector((x * 0.014, y * 0.014, 41.0))) * 22.0 * rocky
+        h += bnoise.noise(Vector((x * 0.041, y * 0.041, 57.0))) * 9.0 * rocky
+        h += bnoise.noise(Vector((x * 0.11, y * 0.11, 73.0))) * 3.2 * rocky
+        h += bnoise.noise(Vector((x * 0.28, y * 0.28, 89.0))) * 1.1 * rocky
 
     # площадки под постройками: дом на сваях, но стулья стоят прямо на песке
     flat = 1.0
@@ -201,15 +206,6 @@ def build_terrain(mats):
         pebbles.append(p)
     parts.append(join(pebbles, "Pebbles", mats["rock"]))
 
-    # Коряги: без них сухой песок читается пустым полем.
-    logs = []
-    for i, (x, y, ln, ang) in enumerate([(-15.5, 11.0, 3.2, 0.7), (13.0, 13.5, 2.4, -1.1),
-                                         (-24.0, 9.0, 2.8, 2.2), (24.0, 6.5, 2.0, 0.3)]):
-        log = cylinder(0.22, ln, (x, y, terrain_height(x, y) + 0.18),
-                       rotation=(math.radians(90), 0, ang), verts=10)
-        smooth(log)
-        logs.append(log)
-    parts.append(join(logs, "Driftwood-col", mats["wood_dark"]))
     return parts
 
 
@@ -240,68 +236,40 @@ def build_mountains(mats):
 
     nxt = _rand_stream(555111)
     peaks = []
-    count = 26
+    count = 40
     for i in range(count):
         # ставим по дуге со стороны суши, море оставляем открытым
         a = math.radians(-150.0 + 300.0 * i / (count - 1.0))
-        dist = nxt(230.0, 400.0)
+        dist = nxt(330.0, 620.0)
         x = math.sin(a) * dist
         y = P["shore_y"] + math.cos(a) * dist
-        h = nxt(70.0, 165.0)
-        r = h * nxt(0.55, 0.95)
-        bpy.ops.mesh.primitive_cone_add(vertices=14, radius1=r, radius2=nxt(0.0, r * 0.12),
-                                        depth=h, location=(x, y, h * 0.5 - 12.0))
+        # гора внутри бухты выглядит колом посреди пляжа
+        if abs(x) < P["beach_x"] + 55.0 and y < P["beach_back"] + 70.0:
+            continue
+        h = nxt(70.0, 175.0)
+        r = h * nxt(0.75, 1.35)          # шире и ниже: острые колпаки читались бумажными
+        bpy.ops.mesh.primitive_cone_add(vertices=int(nxt(9, 13)), radius1=r,
+                                        radius2=nxt(0.0, r * 0.3),
+                                        depth=h, location=(x, y, h * 0.5 - 14.0))
         peak = bpy.context.object
+        # Мнём сильно и на трёх масштабах. Слабое сминание оставляло ровный
+        # конус, а гора — это отроги и седловины, а не колпак.
+        top = h * 0.5
         for v in peak.data.vertices:
             w = peak.matrix_world @ v.co
-            n = bnoise.noise(Vector((w.x * 0.012, w.y * 0.012, w.z * 0.012)))
-            v.co += v.normal * n * h * 0.13
+            n = bnoise.noise(Vector((w.x * 0.008, w.y * 0.008, w.z * 0.008))) * 0.30
+            n += bnoise.noise(Vector((w.x * 0.024, w.y * 0.024, w.z * 0.024))) * 0.16
+            n += bnoise.noise(Vector((w.x * 0.07, w.y * 0.07, w.z * 0.07))) * 0.06
+            # У вершины конуса вершины сетки сходятся в точку, и сминание там
+            # вытягивает иглу. Глушим деформацию по мере приближения к верхушке.
+            taper = 1.0 - max(0.0, min(1.0, (v.co.z + top) / (h * 1.05))) ** 3
+            v.co += v.normal * n * h * taper
         peak.data.update()
         peak.rotation_euler = (0, 0, nxt(0.0, 6.28))
         peaks.append(peak)
     peak = join(peaks, "Mountains", mats["rock"])
     smooth(peak, 50.0)
     return [peak]
-
-
-def build_arch(mats):
-    """Арка в скале — единственный вход на пляж.
-
-    Собирается как в природе: берётся массив скалы и из него вычитается проём.
-    Первая версия была цепочкой шаров по дуге — вблизи это читалось гусеницей,
-    а не камнем. У настоящей арки (Юта, Arches) свод толстый и неровный, а
-    отверстие гладкое, будто выточено водой: именно это и даёт булева разность.
-    """
-    from mathutils import noise as bnoise
-    from mathutils import Vector
-
-    # Арку сажаем ВГЛУБЬ прохода, а не на его входе. На кромке пляжа скальный
-    # склон ещё только начинается, и глыба там висит отдельным валуном рядом с
-    # расщелиной. Внутри прохода стены уже высокие, и массив с ними срастается.
-    ax = P["arch_x"]
-    ay = P["beach_back"] + P["arch_depth"]
-    ground = terrain_height(ax, ay)
-
-    # массив толстый по всем осям: он должен перекрыть щель и войти в обе стены
-    mass = ball(1.0, (ax, ay, ground + 11.0), scale=(19.0, 17.0, 21.0),
-                segments=44, rings=26)
-    # мнём поверхность, иначе это гладкое яйцо, а не скала
-    for v in mass.data.vertices:
-        w = mass.matrix_world @ v.co
-        n = bnoise.noise(Vector((w.x * 0.11, w.y * 0.11, w.z * 0.11))) * 1.5
-        n += bnoise.noise(Vector((w.x * 0.31, w.y * 0.31, w.z * 0.31))) * 0.5
-        v.co += v.normal * n
-    mass.data.update()
-
-    # проём: вытянутый эллипсоид насквозь. По высоте уходит ниже земли, чтобы
-    # проход доходил до песка, а не висел окном над головой
-    opening = ball(1.0, (ax, ay, ground + 8.0), scale=(5.2, 26.0, 8.4),
-                   segments=40, rings=24)
-    boolean(mass, opening)
-    # низ подрезаем по земле: без этого глыба уходит в песок пузырём
-    boolean(mass, box((ax, ay, ground - 10.0), (60.0, 30.0, 20.0)))
-    smooth(mass, 45.0)
-    return [rename(mass, "Arch-col", mats["rock"])]
 
 
 # ─────────────────────────────────────────────────────────────── пирс
@@ -398,14 +366,6 @@ def build_pier_props(mats):
         barrels.append(b)
     parts.append(join(barrels, "Barrels-col", mats["barrel"]))
 
-    posts, lamps = [], []
-    for y in (P["shore_y"] - 8.0, P["shore_y"] - 20.0):
-        p = cylinder(0.09, 3.2, (w / 2 - 0.35, y, top + 1.6), verts=12)
-        arm = box((w / 2 - 0.7, y, top + 3.1), (0.8, 0.08, 0.08))
-        posts += [p, arm]
-        lamps.append(ball(0.22, (w / 2 - 1.05, y, top + 2.95), segments=16, rings=8))
-    parts.append(join(posts, "Lamp_Posts-col", mats["metal"]))
-    parts.append(join(lamps, "Lamp_Globes", mats["lamp"]))
     return parts
 
 
@@ -434,12 +394,13 @@ def main():
         "stone": material("Stone", (0.42, 0.41, 0.39), 0.0, 0.85),
         "metal": material("Metal", (0.35, 0.36, 0.38), 0.9, 0.45),
         "barrel": material("Barrel", (0.20, 0.34, 0.34), 0.5, 0.55),
+        "grass": material("Grass", (0.42, 0.44, 0.24), 0.0, 0.85),
         "glass": glass_material("WindowGlass", (0.55, 0.70, 0.78)),
         "lamp": material("LampGlobe", (1.0, 0.90, 0.68), 0.0, 0.2, emission=5.0),
     }
 
     parts = []
-    for builder in (build_terrain, build_mountains, build_arch, build_pier,
+    for builder in (build_terrain, build_mountains, build_pier,
                     build_pier_props, build_path):
         parts += builder(mats)
     print("### частей:", len(parts), "->", ", ".join(p.name for p in parts))

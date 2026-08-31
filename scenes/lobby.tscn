@@ -1,29 +1,27 @@
-[gd_scene load_steps=24 format=3]
+[gd_scene format=3 uid="uid://bvo11x7mes7iy"]
 
-[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://lj7l1qjck36g" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
-[ext_resource type="Script" path="res://scripts/hud.gd" id="3_hud"]
-[ext_resource type="Script" path="res://scripts/emote_wheel.gd" id="4_wheel"]
-[ext_resource type="Environment" path="res://scenes/default_env.tres" id="5_env"]
-[ext_resource type="PackedScene" path="res://assets/models/lobby.glb" id="6_lobby"]
-[ext_resource type="PackedScene" path="res://assets/models/bathyscaphe.glb" id="7_sub"]
+[ext_resource type="Script" uid="uid://bfqju8wdymckf" path="res://scripts/hud.gd" id="3_hud"]
+[ext_resource type="Script" uid="uid://dvc6oo4i5bbhq" path="res://scripts/emote_wheel.gd" id="4_wheel"]
+[ext_resource type="Environment" uid="uid://chpiw32jtp8o0" path="res://scenes/default_env.tres" id="5_env"]
+[ext_resource type="PackedScene" uid="uid://c3m1dmld308di" path="res://assets/models/lobby.glb" id="6_lobby"]
+[ext_resource type="PackedScene" uid="uid://cdylusfe7yip5" path="res://assets/models/bathyscaphe.glb" id="7_sub"]
 [ext_resource type="Material" path="res://assets/water/EA_Water_Tropical.tres" id="8_water"]
-[ext_resource type="Shader" path="res://assets/shaders/sand.gdshader" id="9_sand"]
-[ext_resource type="Script" path="res://scripts/material_painter.gd" id="10_painter"]
-[ext_resource type="Script" path="res://scripts/water_splash.gd" id="11_splash"]
-[ext_resource type="PackedScene" path="res://assets/models/house.glb" id="12_house"]
-[ext_resource type="PackedScene" path="res://assets/models/chair.glb" id="13_chair"]
-[ext_resource type="Script" path="res://scripts/ambience.gd" id="14_amb"]
-[ext_resource type="AudioStream" path="res://assets/audio/surf_loop.wav" id="15_surf"]
-[ext_resource type="AudioStream" path="res://assets/audio/wind_loop.wav" id="16_wind"]
-[ext_resource type="AudioStream" path="res://assets/audio/gull_1.wav" id="17_g1"]
-[ext_resource type="AudioStream" path="res://assets/audio/gull_2.wav" id="18_g2"]
-[ext_resource type="AudioStream" path="res://assets/audio/gull_3.wav" id="19_g3"]
-
-[sub_resource type="BoxShape3D" id="ArchBlock"]
-size = Vector3(9, 14, 2)
+[ext_resource type="Shader" uid="uid://jph5rxy37440" path="res://assets/shaders/sand.gdshader" id="9_sand"]
+[ext_resource type="Script" uid="uid://db054rf8qego0" path="res://scripts/material_painter.gd" id="10_painter"]
+[ext_resource type="Script" uid="uid://i25biqm4kfd" path="res://scripts/water_splash.gd" id="11_splash"]
+[ext_resource type="PackedScene" uid="uid://c5iyvuf47vvkg" path="res://assets/models/house.glb" id="12_house"]
+[ext_resource type="PackedScene" uid="uid://b0e7rqad1bfaj" path="res://assets/models/chair.glb" id="13_chair"]
+[ext_resource type="Script" uid="uid://vs8dr2i2g6iq" path="res://scripts/ambience.gd" id="14_amb"]
+[ext_resource type="AudioStream" uid="uid://yk5yculywkgo" path="res://assets/audio/surf_loop.wav" id="15_surf"]
+[ext_resource type="AudioStream" uid="uid://dg2qs4yd5povt" path="res://assets/audio/wind_loop.wav" id="16_wind"]
+[ext_resource type="AudioStream" uid="uid://dqrrrn2oc4m0w" path="res://assets/audio/gull_1.wav" id="17_g1"]
+[ext_resource type="AudioStream" uid="uid://dt332s062hjrm" path="res://assets/audio/gull_2.wav" id="18_g2"]
+[ext_resource type="AudioStream" uid="uid://gkdiewmguo7k" path="res://assets/audio/gull_3.wav" id="19_g3"]
 
 [sub_resource type="ShaderMaterial" id="SandMat"]
+render_priority = 0
 shader = ExtResource("9_sand")
 shader_parameter/sand_dry = Color(0.78, 0.68, 0.5, 1)
 shader_parameter/sand_wet = Color(0.38, 0.3, 0.22, 1)
@@ -31,16 +29,17 @@ shader_parameter/color_variation = 0.12
 shader_parameter/variation_scale = 0.09
 shader_parameter/water_level = -0.55
 shader_parameter/wet_fade = 0.9
+shader_parameter/rock_color = Color(0.35, 0.32, 0.3, 1)
+shader_parameter/snow_color = Color(0.92, 0.94, 0.97, 1)
+shader_parameter/rock_level = 12.0
+shader_parameter/rock_fade = 14.0
+shader_parameter/snow_level = 46.0
+shader_parameter/snow_fade = 22.0
+shader_parameter/snow_min_flatness = 0.34
 shader_parameter/ripple_strength = 0.35
 shader_parameter/ripple_scale = 3.4
 shader_parameter/grain_strength = 0.25
 shader_parameter/grain_scale = 42.0
-
-[sub_resource type="PlaneMesh" id="WaterFarMesh"]
-material = ExtResource("8_water")
-size = Vector2(4000, 4000)
-subdivide_width = 40
-subdivide_depth = 40
 
 [sub_resource type="PlaneMesh" id="WaterMesh"]
 material = ExtResource("8_water")
@@ -48,104 +47,110 @@ size = Vector2(220, 220)
 subdivide_width = 180
 subdivide_depth = 180
 
-[node name="Lobby" type="Node3D"]
+[sub_resource type="PlaneMesh" id="WaterFarMesh"]
+material = ExtResource("8_water")
+size = Vector2(4000, 4000)
+subdivide_width = 40
+subdivide_depth = 40
+
+[sub_resource type="BoxShape3D" id="ArchBlock"]
+size = Vector3(9, 14, 2)
+
+[node name="Lobby" type="Node3D" unique_id=996390571]
 script = ExtResource("1_main")
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=629559740]
 environment = ExtResource("5_env")
 
-[node name="Sun" type="DirectionalLight3D" parent="."]
-position = Vector3(6, 14, 6)
-rotation = Vector3(-0.183260, -0.610865, 0.000000)
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1820121053]
+transform = Transform3D(0.8191522, 0.1045262, -0.5639716, 0, 0.98325485, 0.18223594, 0.5735762, -0.14927897, 0.80543536, 6, 14, 6)
 light_color = Color(1, 0.71, 0.45, 1)
 light_energy = 1.2
-light_angular_distance = 1.2
 light_volumetric_fog_energy = 2.2
+light_angular_distance = 1.2
 shadow_enabled = true
-shadow_bias = 0.1
 shadow_normal_bias = 1.5
 shadow_blur = 1.3
 directional_shadow_max_distance = 140.0
 
-[node name="Level" type="Node3D" parent="."]
+[node name="Level" type="Node3D" parent="." unique_id=1821714850]
 
-[node name="Shore" parent="Level" instance=ExtResource("6_lobby")]
+[node name="Shore" parent="Level" unique_id=902951576 instance=ExtResource("6_lobby")]
 
-[node name="SandPainter" type="Node" parent="Level/Shore"]
+[node name="SandPainter" type="Node" parent="Level/Shore" unique_id=1237324440]
 script = ExtResource("10_painter")
 target = NodePath("..")
 material = SubResource("SandMat")
-mesh_names = Array[String](["Terrain", "Mountains", "Arch"])
+mesh_names = Array[String](["Terrain", "Mountains"])
 
-[node name="Water" type="MeshInstance3D" parent="Level"]
-position = Vector3(0, -0.55, 10)
+[node name="Water" type="MeshInstance3D" parent="Level" unique_id=596957695]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.55, 10)
+cast_shadow = 0
 mesh = SubResource("WaterMesh")
+
+[node name="House" parent="Level" unique_id=383974932 instance=ExtResource("12_house")]
+transform = Transform3D(0.86602527, 0, 0.50000024, 0, 1, 0, -0.50000024, 0, 0.86602527, -9.5, 0, -11)
+
+[node name="ChairPierA" parent="Level" unique_id=2057998200 instance=ExtResource("13_chair")]
+transform = Transform3D(-0.34202, 0, -0.9396927, 0, 1, 0, 0.9396927, 0, -0.34202, 1.55, 0.55, 3.4)
+
+[node name="ChairPierB" parent="Level" unique_id=1265436301 instance=ExtResource("13_chair")]
+transform = Transform3D(0.17364857, 0, 0.98480767, 0, 1, 0, -0.98480767, 0, 0.17364857, -1.6, 0.55, 5.8)
+
+[node name="ChairShore" parent="Level" unique_id=1275318129 instance=ExtResource("13_chair")]
+transform = Transform3D(0.5735765, 0, 0.819152, 0, 1, 0, -0.819152, 0, 0.5735765, -5.8, 0, -8.4)
+
+[node name="WaterFar" type="MeshInstance3D" parent="Level" unique_id=1021967821]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.62, 10)
 cast_shadow = 0
-
-[node name="House" parent="Level" instance=ExtResource("12_house")]
-position = Vector3(-9.5, 0, -11.0)
-rotation = Vector3(0, 0.523599, 0)
-
-[node name="ChairPierA" parent="Level" instance=ExtResource("13_chair")]
-position = Vector3(1.55, 0.55, 3.4)
-rotation = Vector3(0, -1.919862, 0)
-
-[node name="ChairPierB" parent="Level" instance=ExtResource("13_chair")]
-position = Vector3(-1.6, 0.55, 5.8)
-rotation = Vector3(0, 1.396263, 0)
-
-[node name="ChairShore" parent="Level" instance=ExtResource("13_chair")]
-position = Vector3(-5.8, 0.0, -8.4)
-rotation = Vector3(0, 0.959931, 0)
-
-[node name="WaterFar" type="MeshInstance3D" parent="Level"]
-position = Vector3(0, -0.62, 10)
 mesh = SubResource("WaterFarMesh")
-cast_shadow = 0
 
-[node name="Bathyscaphe" parent="Level" instance=ExtResource("7_sub")]
-position = Vector3(7.6, -3.6, 9.5)
-rotation = Vector3(0, -0.349066, 0)
+[node name="Bathyscaphe" parent="Level" unique_id=703347742 instance=ExtResource("7_sub")]
+transform = Transform3D(0.93969256, 0, -0.34202027, 0, 1, 0, 0.34202027, 0, 0.93969256, 7.6, -3.6, 9.5)
 
-[node name="ArchBlocker" type="StaticBody3D" parent="Level"]
-position = Vector3(15, 6, -63)
+[node name="PassBlocker" type="StaticBody3D" parent="Level" unique_id=1372549680]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 6, -63)
 
-[node name="Shape" type="CollisionShape3D" parent="Level/ArchBlocker"]
+[node name="Shape" type="CollisionShape3D" parent="Level/PassBlocker" unique_id=255091351]
 shape = SubResource("ArchBlock")
 
-[node name="Ambience" type="Node3D" parent="."]
+[node name="Ambience" type="Node3D" parent="." unique_id=1203785062]
 script = ExtResource("14_amb")
 surf = ExtResource("15_surf")
 wind = ExtResource("16_wind")
 gulls = Array[AudioStream]([ExtResource("17_g1"), ExtResource("18_g2"), ExtResource("19_g3")])
 listener = NodePath("../Player")
 
-[node name="Player" parent="." instance=ExtResource("2_player")]
-position = Vector3(0, 0.9, -3)
+[node name="Player" parent="." unique_id=1776984483 instance=ExtResource("2_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, -3)
 
-[node name="WaterSplash" type="GPUParticles3D" parent="Player"]
+[node name="WaterSplash" type="GPUParticles3D" parent="Player" unique_id=987684448]
 script = ExtResource("11_splash")
 water_path = NodePath("../../Level/Water")
 
-[node name="HUD" type="CanvasLayer" parent="."]
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1703613693]
 script = ExtResource("3_hud")
 
-[node name="Panel" type="PanelContainer" parent="HUD"]
+[node name="Panel" type="PanelContainer" parent="HUD" unique_id=554605616]
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 360.0
 offset_bottom = 260.0
 
-[node name="Hints" type="Label" parent="HUD/Panel"]
+[node name="Hints" type="Label" parent="HUD/Panel" unique_id=617803565]
+layout_mode = 2
 text = "..."
 
-[node name="EmoteWheel" type="Control" parent="HUD" groups=["emote_wheel"]]
+[node name="EmoteWheel" type="Control" parent="HUD" unique_id=2124492753 groups=["emote_wheel"]]
+layout_mode = 3
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 script = ExtResource("4_wheel")
 
-[node name="Status" type="Label" parent="HUD"]
+[node name="Status" type="Label" parent="HUD" unique_id=865481692]
+anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
 offset_left = -300.0
@@ -154,4 +159,3 @@ offset_right = -16.0
 offset_bottom = 64.0
 grow_horizontal = 0
 horizontal_alignment = 2
-text = ""
