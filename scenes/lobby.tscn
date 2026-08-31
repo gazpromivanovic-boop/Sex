@@ -118,7 +118,6 @@ shape = SubResource("ArchBlock")
 script = ExtResource("14_amb")
 surf = ExtResource("15_surf")
 wind = ExtResource("16_wind")
-gulls = Array[AudioStream]([ExtResource("17_g1"), ExtResource("18_g2"), ExtResource("19_g3")])
 listener = NodePath("../Player")
 
 [node name="Player" parent="." unique_id=1776984483 instance=ExtResource("2_player")]

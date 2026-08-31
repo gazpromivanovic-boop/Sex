@@ -1,4 +1,4 @@
-[gd_scene load_steps=28 format=3]
+[gd_scene load_steps=32 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/body_collider.gd" id="4_collider"]
@@ -84,6 +84,19 @@ fadeout_time = 0.2
 [sub_resource type="AnimationNodeAnimation" id="Anim_emote"]
 animation = &"EmoteHipHop"
 
+[sub_resource type="AnimationNodeAnimation" id="Anim_tread"]
+animation = &"SwimTread"
+
+[sub_resource type="AnimationNodeAnimation" id="Anim_swim"]
+animation = &"SwimForward"
+
+[sub_resource type="AnimationNodeBlend2" id="Blend2_swim"]
+sync = true
+
+[sub_resource type="AnimationNodeOneShot" id="OneShot_swim"]
+fadein_time = 0.4
+fadeout_time = 0.45
+
 [sub_resource type="AnimationNodeAnimation" id="Anim_pose"]
 animation = &"Idle"
 
@@ -127,8 +140,16 @@ nodes/PoseAnim/node = SubResource("Anim_pose")
 nodes/PoseAnim/position = Vector2(1260, -600)
 nodes/PoseShot/node = SubResource("OneShot_pose")
 nodes/PoseShot/position = Vector2(1500, 160)
-nodes/output/position = Vector2(1740, 160)
-node_connections = [&"RunBlend", 0, &"Locomotion", &"RunBlend", 1, &"SprintAnim", &"Speed", 0, &"RunBlend", &"TurnLeftShot", 0, &"Speed", &"TurnLeftShot", 1, &"TurnLeftAnim", &"TurnRightShot", 0, &"TurnLeftShot", &"TurnRightShot", 1, &"TurnRightAnim", &"RunJumpSpeed", 0, &"RunJumpAnim", &"RunJumpShot", 0, &"TurnRightShot", &"RunJumpShot", 1, &"RunJumpSpeed", &"EmoteShot", 0, &"RunJumpShot", &"EmoteShot", 1, &"EmoteAnim", &"PoseShot", 0, &"EmoteShot", &"PoseShot", 1, &"PoseAnim", &"output", 0, &"PoseShot"]
+nodes/SwimTreadAnim/node = SubResource("Anim_tread")
+nodes/SwimTreadAnim/position = Vector2(1500, -820)
+nodes/SwimForwardAnim/node = SubResource("Anim_swim")
+nodes/SwimForwardAnim/position = Vector2(1500, -680)
+nodes/SwimBlend/node = SubResource("Blend2_swim")
+nodes/SwimBlend/position = Vector2(1740, -740)
+nodes/SwimShot/node = SubResource("OneShot_swim")
+nodes/SwimShot/position = Vector2(1740, 160)
+nodes/output/position = Vector2(1980, 160)
+node_connections = [&"RunBlend", 0, &"Locomotion", &"RunBlend", 1, &"SprintAnim", &"Speed", 0, &"RunBlend", &"TurnLeftShot", 0, &"Speed", &"TurnLeftShot", 1, &"TurnLeftAnim", &"TurnRightShot", 0, &"TurnLeftShot", &"TurnRightShot", 1, &"TurnRightAnim", &"RunJumpSpeed", 0, &"RunJumpAnim", &"RunJumpShot", 0, &"TurnRightShot", &"RunJumpShot", 1, &"RunJumpSpeed", &"EmoteShot", 0, &"RunJumpShot", &"EmoteShot", 1, &"EmoteAnim", &"PoseShot", 0, &"EmoteShot", &"PoseShot", 1, &"PoseAnim", &"SwimBlend", 0, &"SwimTreadAnim", &"SwimBlend", 1, &"SwimForwardAnim", &"SwimShot", 0, &"PoseShot", &"SwimShot", 1, &"SwimBlend", &"output", 0, &"SwimShot"]
 
 [node name="Player" type="CharacterBody3D" groups=["player"]]
 collision_layer = 2

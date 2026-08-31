@@ -149,6 +149,30 @@ extends CharacterBody3D
 ## угол можно добить прямо в инспекторе, глядя в игру.
 @export var pose_tilt: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]
 
+@export_group("Плавание")
+## Клипы плавания. Как и позы, они лежат отдельными FBX и переносятся на скелет
+## при запуске — сведение в player.glb требует Blender.
+@export var swim_files: Array[String] = [
+	"res://assets/animations/treading_water.fbx",
+	"res://assets/animations/swimming.fbx",
+	"res://assets/animations/swimming_to_edge.fbx",
+]
+## На какой глубине персонаж отрывается от дна и плывёт. Меряется от подошв,
+## поэтому 1.35 — это примерно по плечи: рост модели 1.79.
+@export var swim_enter_depth: float = 1.35
+## И на какой встаёт обратно на ноги. Порог ниже входного намеренно: с одним
+## порогом на его границе персонаж дёргается между шагом и гребком каждый кадр.
+@export var swim_exit_depth: float = 1.05
+@export var swim_speed: float = 2.1
+@export var swim_accel: float = 5.0
+## Насколько тело утоплено, когда держится на воде. Голова должна остаться над
+## поверхностью, поэтому меньше роста.
+@export var float_depth: float = 1.30
+## Жёсткость выталкивания к поверхности.
+@export var buoyancy: float = 5.0
+## Скорость всплытия и погружения на пробеле и приседании.
+@export var swim_vertical: float = 1.6
+
 @export_group("Эмоции")
 ## Скорость указателя в колесе эмоций.
 @export var wheel_pointer_speed: float = 1.0
@@ -195,6 +219,10 @@ var first_person: bool = false
 var aiming: bool = false
 var turning_in_place: bool = false
 var sprinting: bool = false           ## бежим ли сейчас (для анимации и обзора)
+var swimming: bool = false            ## персонаж на плаву
+var swim_node: AnimationNodeAnimation ## узел дерева для клипа плавания
+var _water: Node3D                    ## поверхность воды, ищется по группе
+var _swim_ready: bool = false
 var move_dir: Vector3 = Vector3.ZERO  ## куда просят идти, в мировых осях
 var move_amount: float = 0.0          ## насколько отклонён стик, 0..1
 var was_on_floor: bool = true
@@ -268,6 +296,7 @@ func _ready() -> void:
 	_setup_animation()
 	_setup_head_hider()
 	_setup_poses()
+	_setup_swim()
 	_setup_emotes()
 
 	model_yaw = rotation.y
@@ -437,6 +466,86 @@ func _handle_pose_input() -> void:
 		set_pose((pose_index + 1) % available_poses.size())
 
 
+## Переносит клипы плавания и находит поверхность воды.
+##
+## Вода ищется по группе, а не задаётся путём: контроллер один на все сцены, и
+## на полигоне воды нет вовсе. Нет узла в группе — плавание просто выключено.
+func _setup_swim() -> void:
+	_water = get_tree().get_first_node_in_group("water") as Node3D
+	if anim_player == null or skeleton == null:
+		return
+	var names := ["SwimTread", "SwimForward", "SwimToEdge"]
+	var loops := [true, true, false]
+	var loaded := 0
+	for i in names.size():
+		if i >= swim_files.size():
+			break
+		var scene: PackedScene = load(swim_files[i]) as PackedScene
+		if scene == null:
+			push_warning("Не нашёлся клип плавания: %s" % swim_files[i])
+			continue
+		if ClipImporter.add_clip(anim_player, skeleton, scene, names[i], loops[i]):
+			loaded += 1
+	_swim_ready = loaded >= 2 and _water != null
+
+
+## Глубина под подошвами: больше нуля — стоим в воде.
+func water_depth() -> float:
+	if _water == null:
+		return -1000.0
+	return _water.global_position.y - global_position.y
+
+
+## Пока плывём: гравитации нет, тело выталкивается к поверхности, движение идёт
+## от камеры. Прыжок и прицел выключены — грести и целиться одновременно нельзя.
+func _swim_physics(delta: float) -> void:
+	aiming = false
+	sprinting = false
+	_read_move_input()
+
+	var target := move_dir * swim_speed * move_amount
+	var horizontal := Vector3(velocity.x, 0.0, velocity.z)
+	horizontal = horizontal.move_toward(target, swim_accel * delta)
+	velocity.x = horizontal.x
+	velocity.z = horizontal.z
+
+	# Выталкивание: тянем тело к уровню, на котором голова над водой. Пружиной, а
+	# не жёсткой установкой высоты — иначе на волне персонажа дёргает.
+	var want := _water.global_position.y - float_depth
+	var lift := (want - global_position.y) * buoyancy
+	if Input.is_action_pressed("jump"):
+		lift += swim_vertical * 2.0
+	velocity.y = clampf(lift, -swim_vertical * 2.5, swim_vertical * 2.5)
+
+	move_and_slide()
+
+	if move_amount > 0.1:
+		model_yaw = rotate_toward(model_yaw, atan2(-move_dir.x, -move_dir.z),
+			turn_speed * 0.6 * delta)
+
+	# гребём тем сильнее, чем быстрее плывём
+	var speed := Vector2(velocity.x, velocity.z).length()
+	var blend: float = anim_tree.get("parameters/SwimBlend/blend_amount")
+	anim_tree.set("parameters/SwimBlend/blend_amount",
+		lerpf(blend, clampf(speed / maxf(swim_speed, 0.01), 0.0, 1.0),
+			clampf(delta * 6.0, 0.0, 1.0)))
+	target_speed = swim_speed
+
+
+func _enter_water() -> void:
+	swimming = true
+	turning_in_place = false
+	if emoting:
+		stop_emote()
+	stand_up()
+	_fire("parameters/SwimShot/request")
+
+
+func _leave_water() -> void:
+	swimming = false
+	_fire("parameters/SwimShot/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
+
+
 ## Готовит слой эмоций: узел дерева, которому будем подменять клип, и колесо выбора.
 func _setup_emotes() -> void:
 	if anim_tree != null and anim_tree.tree_root is AnimationNodeBlendTree:
@@ -560,6 +669,20 @@ func _physics_process(delta: float) -> void:
 	if emoting or posing:
 		_locked_physics(delta)
 		return
+	# Плавание перехватывает управление целиком: ходить, прыгать и целиться на
+	# плаву нечем, а гравитация заменяется выталкиванием.
+	if _swim_ready:
+		var depth := water_depth()
+		if swimming and depth < swim_exit_depth:
+			_leave_water()
+		elif not swimming and depth > swim_enter_depth:
+			_enter_water()
+		if swimming:
+			_swim_physics(delta)
+			was_on_floor = is_on_floor()
+			_update_animation(delta)
+			return
+
 	aiming = Input.is_action_pressed("aim")
 	var on_floor := is_on_floor()
 
