@@ -18,6 +18,11 @@ extends Node3D
 ## Разворот каждой копии, градусы. Доска настила лежит длинной стороной поперёк
 ## пирса, а ряд идёт вдоль — без этого её пришлось бы разворачивать в модели.
 @export var base_rotation: Vector3 = Vector3.ZERO
+## Прижимать каждую копию к земле лучом. Нужно на рельефе: ровный ряд по прямой
+## там висит в воздухе на буграх и тонет во впадинах.
+@export var snap_to_ground: bool = false
+@export var snap_from: float = 30.0
+@export var snap_length: float = 80.0
 
 @export_group("Разнобой")
 ## Случайный сдвиг поперёк и вдоль, метры.
@@ -55,6 +60,15 @@ func build() -> void:
 			rng.randf_range(-jitter.x, jitter.x),
 			rng.randf_range(-jitter.y, jitter.y),
 			i * spacing)
+		if snap_to_ground:
+			var space := get_world_3d().direct_space_state
+			if space != null:
+				var origin := inst.global_position + Vector3.UP * snap_from
+				var q := PhysicsRayQueryParameters3D.create(
+					origin, origin + Vector3.DOWN * snap_length)
+				var hit := space.intersect_ray(q)
+				if not hit.is_empty():
+					inst.global_position = hit["position"]
 		inst.rotation = Vector3(
 			deg_to_rad(base_rotation.x + rng.randf_range(-roll_jitter, roll_jitter)),
 			deg_to_rad(base_rotation.y + rng.randf_range(-yaw_jitter, yaw_jitter)),

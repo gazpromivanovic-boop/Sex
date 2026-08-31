@@ -71,6 +71,11 @@ PROPS = [
      "name": "grass_patch", "height": 0.55, "budget": 900, "texture": 512},
     {"src": ROCKS + "/dry-grass/source/sketchfabGrass.fbx",
      "name": "grass_dry", "height": 0.45, "budget": 700, "texture": 512},
+    # Из .rar: распаковщик нашёлся у WinRAR.
+    {"src": ROCKS + "/ruined-rock-fence/source/unpacked/stone_fence_old_low.fbx",
+     "name": "fence", "height": 1.25, "budget": 1600, "texture": 1024},
+    {"src": ROCKS + "/log/source/unpacked/Log_fbx.fbx",
+     "name": "log_b", "height": 0.55, "budget": 1200, "texture": 512},
 ]
 
 OUT_DIR = "assets/models"
