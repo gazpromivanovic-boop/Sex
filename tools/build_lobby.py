@@ -64,10 +64,10 @@ def build_land(mats):
     bevel(land, 0.35, 3)
     parts = [rename(land, "Land-col", mats["sand"])]
 
-    # отмель: уходит под воду, иначе берег обрывается стеной
-    shelf = box((0, P["shore_y"] - 1.0, -2.2), (P["land_size"], 14.0, 4.2))
-    shelf.rotation_euler = (math.radians(-7), 0, 0)   # пологий заход в воду
-    bevel(shelf, 0.5, 2)
+    # Дно у берега. Верх держим ниже уровня воды: вровень с землёй оно читалось
+    # отдельной террасой со ступенькой на линии берега.
+    shelf = box((0, P["shore_y"] - 5.0, -3.0), (P["land_size"], 22.0, 4.0))
+    bevel(shelf, 0.4, 2)
     parts.append(rename(shelf, "Shelf-col", mats["sand"]))
 
     rocks = []
@@ -200,9 +200,19 @@ def build_house(mats):
     boolean(walls, box((x0 + w / 2, y0 + 1.2, 2.1), (1.2, 1.6, 1.2)))
     parts.append(rename(bevel(walls, 0.04), "House_Walls-col", mats["wood_dark"]))
 
-    # свес небольшой: при +1.2 м крыша выглядела плитой размером с сам дом
-    roof = wedge((x0, y0, h + P["roof_h"] / 2), (w + 0.7, d + 0.6, P["roof_h"]))
-    parts.append(rename(roof, "House_Roof-col", mats["roof"]))
+    # Двускатная крыша из двух плит, а не из призмы со сведёнными вершинами:
+    # правка вершин давала односкатный навес, конёк из неё не получался.
+    span = (w + 0.7) / 2.0
+    pitch = math.atan2(P["roof_h"], span)
+    slab = math.hypot(span, P["roof_h"])
+    slabs = []
+    for sx in (-1, 1):
+        r = box((0, 0, 0), (slab, d + 0.6, 0.18))
+        r.rotation_euler = (0, sx * pitch, 0)
+        r.location = (x0 + sx * span / 2, y0, h + P["roof_h"] / 2)
+        slabs.append(r)
+    slabs.append(box((x0, y0, h + P["roof_h"]), (0.3, d + 0.7, 0.22)))  # конёк
+    parts.append(join(slabs, "House_Roof-col", mats["roof"]))
 
     glass = []
     for sx in (-1, 1):
@@ -216,7 +226,9 @@ def build_house(mats):
         porch.append(box((x0 + sx * (w * 0.35), y0 - d / 2 - 2.6, 1.5),
                          (0.16, 0.16, 2.6)))
     porch.append(box((x0, y0 - d / 2 - 2.6, 2.85), (w * 0.78, 0.2, 0.3)))
-    porch.append(wedge((x0, y0 - d / 2 - 1.5, 3.05), (w * 0.78, 3.2, 0.5)))
+    canopy = box((x0, y0 - d / 2 - 1.5, 3.02), (w * 0.78, 3.2, 0.16))
+    canopy.rotation_euler = (math.radians(6), 0, 0)   # лёгкий уклон от дома
+    porch.append(canopy)
     parts.append(join(porch, "House_Porch-col", mats["wood"]))
 
     # тропинка от крыльца к пирсу
