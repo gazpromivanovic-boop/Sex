@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Basic Locomotion Kit"
 config/description="Готовый контроллер персонажа для 3D: камера от третьего лица через плечо (как в Fortnite) и вид от первого лица."
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/lobby.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 

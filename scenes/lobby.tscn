@@ -1,0 +1,94 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://scripts/hud.gd" id="3_hud"]
+[ext_resource type="Script" path="res://scripts/emote_wheel.gd" id="4_wheel"]
+[ext_resource type="Environment" path="res://scenes/default_env.tres" id="5_env"]
+[ext_resource type="PackedScene" path="res://assets/models/lobby.glb" id="6_lobby"]
+[ext_resource type="PackedScene" path="res://assets/models/bathyscaphe.glb" id="7_sub"]
+[ext_resource type="Shader" path="res://assets/shaders/water.gdshader" id="8_water"]
+
+[sub_resource type="ShaderMaterial" id="WaterMat"]
+render_priority = 0
+shader = ExtResource("8_water")
+shader_parameter/deep_color = Color(0.015, 0.07, 0.11, 1)
+shader_parameter/shallow_color = Color(0.09, 0.3, 0.34, 1)
+shader_parameter/foam_color = Color(0.72, 0.8, 0.84, 1)
+shader_parameter/fresnel_power = 3.0
+shader_parameter/wave_height = 0.13
+shader_parameter/wave_scale = 0.22
+shader_parameter/wave_speed = 0.7
+shader_parameter/foam_amount = 0.35
+shader_parameter/water_roughness = 0.06
+shader_parameter/water_alpha = 0.93
+
+[sub_resource type="PlaneMesh" id="WaterMesh"]
+material = SubResource("WaterMat")
+size = Vector2(220, 220)
+subdivide_width = 180
+subdivide_depth = 180
+
+[node name="Lobby" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = ExtResource("5_env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+position = Vector3(6, 14, 6)
+rotation = Vector3(-0.183260, -0.610865, 0.000000)
+light_color = Color(1, 0.71, 0.45, 1)
+light_energy = 1.2
+light_angular_distance = 1.2
+light_volumetric_fog_energy = 2.2
+shadow_enabled = true
+shadow_bias = 0.1
+shadow_normal_bias = 1.5
+shadow_blur = 1.3
+directional_shadow_max_distance = 140.0
+
+[node name="Level" type="Node3D" parent="."]
+
+[node name="Shore" parent="Level" instance=ExtResource("6_lobby")]
+
+[node name="Water" type="MeshInstance3D" parent="Level"]
+position = Vector3(0, -0.55, 10)
+mesh = SubResource("WaterMesh")
+cast_shadow = 0
+
+[node name="Bathyscaphe" parent="Level" instance=ExtResource("7_sub")]
+position = Vector3(7.6, -3.6, 9.5)
+rotation = Vector3(0, -0.349066, 0)
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector3(0, 0.9, -3)
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("3_hud")
+
+[node name="Panel" type="PanelContainer" parent="HUD"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 360.0
+offset_bottom = 260.0
+
+[node name="Hints" type="Label" parent="HUD/Panel"]
+text = "..."
+
+[node name="EmoteWheel" type="Control" parent="HUD" groups=["emote_wheel"]]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("4_wheel")
+
+[node name="Status" type="Label" parent="HUD"]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -300.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 64.0
+grow_horizontal = 0
+horizontal_alignment = 2
+text = ""
