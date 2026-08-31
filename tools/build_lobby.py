@@ -46,6 +46,9 @@ P = {
     "house_d": 7.5,
     "house_h": 3.6,
     "roof_h": 3.0,          # круче скат: пологая крыша читается плоской плитой
+    "wall": 0.28,                # толщина стены
+    "door_w": 1.5,
+    "door_h": 2.3,
     "house_x": -9.5,
     "house_y": 15.0,
 }
@@ -69,6 +72,17 @@ def build_land(mats):
     shelf = box((0, P["shore_y"] - 5.0, -3.0), (P["land_size"], 22.0, 4.0))
     bevel(shelf, 0.4, 2)
     parts.append(rename(shelf, "Shelf-col", mats["sand"]))
+
+    # Дюны: без них берег — идеально плоская плита, и песком не читается
+    # никакой цвет. Бугры плоские и редкие, ходить они не мешают.
+    dunes = []
+    for i, (x, y, rx, ry, hgt) in enumerate([
+            (-24, 20, 13, 9, 1.5), (18, 26, 15, 10, 1.9), (-6, 34, 12, 8, 1.2),
+            (30, 14, 9, 7, 1.0), (-30, 40, 14, 9, 1.6)]):
+        d = ball(1.0, (x, y, -0.15), scale=(rx, ry, hgt), segments=20, rings=10)
+        smooth(d)
+        dunes.append(d)
+    parts.append(join(dunes, "Dunes-col", mats["sand"]))
 
     rocks = []
     for i, (x, y, r) in enumerate([(-20, 4.0, 1.5), (16, 2.5, 1.1), (22, 7.0, 1.8),
@@ -185,20 +199,44 @@ def build_pier_props(mats):
 
 
 def build_house(mats):
-    """Домик смотрителя: сруб с двускатной крышей, крыльцо повёрнуто к пирсу."""
+    """Домик смотрителя: сруб с двускатной крышей, крыльцом к пирсу.
+
+    Стены собраны отдельными плитами, а НЕ вырезаны булевой операцией из куба.
+    Разница принципиальная: на полую оболочку Godot вешает коллизию по мешу, у
+    неё нет «внутри», и цилиндр персонажа в тонкой стенке заклинивает намертво.
+    Плиты выпуклые, и между ними нечему клинить, а дверной проём получается
+    настоящим — из двух простенков и перемычки.
+    """
     x0, y0 = P["house_x"], P["house_y"]
     w, d, h = P["house_w"], P["house_d"], P["house_h"]
+    t = P["wall"]
+    door_w, door_h = P["door_w"], P["door_h"]
     parts = []
 
-    walls = box((x0, y0, h / 2), (w, d, h))
-    # полость: дом должен быть коробкой со стенами, а не монолитом
-    boolean(walls, box((x0, y0, h / 2), (w - 0.5, d - 0.5, h - 0.5)))
-    # дверь и окна прорезаем насквозь
-    boolean(walls, box((x0, y0 - d / 2, 1.1), (1.3, 1.2, 2.2)))
+    walls = [box((x0, y0 + d / 2 - t / 2, h / 2), (w, t, h))]          # задняя
     for sx in (-1, 1):
-        boolean(walls, box((x0 + sx * 2.7, y0 - d / 2, 2.1), (1.5, 1.2, 1.2)))
-    boolean(walls, box((x0 + w / 2, y0 + 1.2, 2.1), (1.2, 1.6, 1.2)))
-    parts.append(rename(bevel(walls, 0.04), "House_Walls-col", mats["wood_dark"]))
+        walls.append(box((x0 + sx * (w / 2 - t / 2), y0, h / 2), (t, d - t * 2, h)))
+    pier = (w - door_w) / 2                                            # простенки
+    for sx in (-1, 1):
+        walls.append(box((x0 + sx * (door_w / 2 + pier / 2), y0 - d / 2 + t / 2, h / 2),
+                         (pier, t, h)))
+    walls.append(box((x0, y0 - d / 2 + t / 2, (door_h + h) / 2),       # перемычка
+                     (door_w, t, h - door_h)))
+    # фронтоны: треугольник под скатами, иначе с торца видно тёмную пустоту
+    for sy in (-1, 1):
+        walls.append(wedge((x0, y0 + sy * (d / 2 - t / 2), h + P["roof_h"] / 2),
+                           (w, t, P["roof_h"])))
+    body = join(walls, "House_Walls-col", mats["wood_dark"])
+
+    # окна режем уже в плитах: щель в 0.28 м уже цилиндра персонажа (0.64 м),
+    # залезть в неё он не сможет при всём желании
+    for sx in (-1, 1):
+        boolean(body, box((x0 + sx * 2.9, y0 - d / 2, 2.15), (1.3, 1.0, 1.1)))
+    boolean(body, box((x0 + w / 2, y0 + 1.2, 2.15), (1.0, 1.4, 1.1)))
+    parts.append(body)
+
+    floor = box((x0, y0, 0.07), (w - t * 2, d - t * 2, 0.14))
+    parts.append(rename(floor, "House_Floor-col", mats["wood"]))
 
     # Двускатная крыша из двух плит, а не из призмы со сведёнными вершинами:
     # правка вершин давала односкатный навес, конёк из неё не получался.
@@ -216,22 +254,20 @@ def build_house(mats):
 
     glass = []
     for sx in (-1, 1):
-        glass.append(box((x0 + sx * 2.7, y0 - d / 2 + 0.02, 2.1), (1.4, 0.06, 1.1)))
-    glass.append(box((x0 + w / 2 - 0.02, y0 + 1.2, 2.1), (0.06, 1.5, 1.1)))
+        glass.append(box((x0 + sx * 2.9, y0 - d / 2 + 0.02, 2.15), (1.2, 0.06, 1.0)))
+    glass.append(box((x0 + w / 2 - 0.02, y0 + 1.2, 2.15), (0.06, 1.3, 1.0)))
     parts.append(join(glass, "House_Windows", mats["glass"]))
 
-    porch = []
-    porch.append(box((x0, y0 - d / 2 - 1.4, 0.2), (w * 0.75, 2.8, 0.4)))
+    porch = [box((x0, y0 - d / 2 - 1.4, 0.2), (w * 0.75, 2.8, 0.4))]
     for sx in (-1, 1):
         porch.append(box((x0 + sx * (w * 0.35), y0 - d / 2 - 2.6, 1.5),
                          (0.16, 0.16, 2.6)))
     porch.append(box((x0, y0 - d / 2 - 2.6, 2.85), (w * 0.78, 0.2, 0.3)))
     canopy = box((x0, y0 - d / 2 - 1.5, 3.02), (w * 0.78, 3.2, 0.16))
-    canopy.rotation_euler = (math.radians(6), 0, 0)   # лёгкий уклон от дома
+    canopy.rotation_euler = (math.radians(6), 0, 0)
     porch.append(canopy)
     parts.append(join(porch, "House_Porch-col", mats["wood"]))
 
-    # тропинка от крыльца к пирсу
     path = box((x0 * 0.5, (y0 - d / 2 - 2.8 + P["shore_y"]) / 2, 0.06),
                (2.2, y0 - d / 2 - 2.8 - P["shore_y"] + 2.0, 0.12))
     path.rotation_euler = (0, 0, math.radians(-14))
@@ -249,8 +285,8 @@ def build_house(mats):
 def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     mats = {
-        "sand": material("Sand", (0.46, 0.40, 0.31), 0.0, 0.95),
-        "rock": material("Rock", (0.28, 0.28, 0.30), 0.0, 0.9),
+        "sand": material("Sand", (0.76, 0.66, 0.48), 0.0, 0.98),
+        "rock": material("Rock", (0.34, 0.31, 0.28), 0.0, 0.9),
         "wood": material("Wood", (0.52, 0.36, 0.22), 0.0, 0.75),
         "wood_dark": material("WoodDark", (0.32, 0.22, 0.15), 0.0, 0.8),
         "roof": material("Roof", (0.30, 0.15, 0.13), 0.0, 0.7),

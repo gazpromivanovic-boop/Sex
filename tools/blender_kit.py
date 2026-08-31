@@ -114,16 +114,23 @@ def ball(radius, location, scale=(1, 1, 1), segments=64, rings=32):
 
 
 def wedge(location, scale):
-    """Треугольная призма — из неё делаются скаты крыш и косынки."""
-    bpy.ops.mesh.primitive_cube_add(size=1.0, location=location)
-    obj = bpy.context.object
-    obj.scale = scale
-    bpy.ops.object.transform_apply(scale=True)
-    mesh = obj.data
-    # сводим верхнее ребро в конёк: две верхние пары вершин съезжаются к центру
-    top = sorted(mesh.vertices, key=lambda v: -v.co.z)[:4]
-    for v in top:
-        v.co.x = 0.0
+    """Треугольная призма: конёк вдоль Y, треугольное сечение в плоскости XZ.
+
+    Собирается явными вершинами, а не правкой «четырёх верхних» у куба. Тот
+    способ уже подвёл: у одного из двух фронтонов конёк уезжал в мировой ноль
+    вместо своего места, и из дома торчала плоскость на пять метров.
+    """
+    hx, hy, hz = scale[0] / 2.0, scale[1] / 2.0, scale[2] / 2.0
+    verts = [(-hx, -hy, -hz), (hx, -hy, -hz), (0.0, -hy, hz),
+             (-hx, hy, -hz), (hx, hy, -hz), (0.0, hy, hz)]
+    faces = [(0, 1, 2), (5, 4, 3), (0, 3, 4, 1), (1, 4, 5, 2), (2, 5, 3, 0)]
+    mesh = bpy.data.meshes.new("Wedge")
+    mesh.from_pydata(verts, [], faces)
+    mesh.update()
+    obj = bpy.data.objects.new("Wedge", mesh)
+    bpy.context.collection.objects.link(obj)
+    obj.location = location
+    bpy.context.view_layer.objects.active = obj
     return obj
 
 
