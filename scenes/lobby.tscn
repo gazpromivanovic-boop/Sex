@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
@@ -8,6 +8,22 @@
 [ext_resource type="PackedScene" path="res://assets/models/lobby.glb" id="6_lobby"]
 [ext_resource type="PackedScene" path="res://assets/models/bathyscaphe.glb" id="7_sub"]
 [ext_resource type="Material" path="res://assets/water/EA_Water_Tropical.tres" id="8_water"]
+[ext_resource type="Shader" path="res://assets/shaders/sand.gdshader" id="9_sand"]
+[ext_resource type="Script" path="res://scripts/material_painter.gd" id="10_painter"]
+[ext_resource type="Script" path="res://scripts/water_splash.gd" id="11_splash"]
+
+[sub_resource type="ShaderMaterial" id="SandMat"]
+shader = ExtResource("9_sand")
+shader_parameter/sand_dry = Color(0.78, 0.68, 0.5, 1)
+shader_parameter/sand_wet = Color(0.38, 0.3, 0.22, 1)
+shader_parameter/color_variation = 0.12
+shader_parameter/variation_scale = 0.09
+shader_parameter/water_level = -0.55
+shader_parameter/wet_fade = 0.9
+shader_parameter/ripple_strength = 0.35
+shader_parameter/ripple_scale = 3.4
+shader_parameter/grain_strength = 0.25
+shader_parameter/grain_scale = 42.0
 
 [sub_resource type="PlaneMesh" id="WaterMesh"]
 material = ExtResource("8_water")
@@ -38,6 +54,12 @@ directional_shadow_max_distance = 140.0
 
 [node name="Shore" parent="Level" instance=ExtResource("6_lobby")]
 
+[node name="SandPainter" type="Node" parent="Level/Shore"]
+script = ExtResource("10_painter")
+target = NodePath("..")
+material = SubResource("SandMat")
+mesh_names = Array[String](["Land", "Seabed", "Dunes"])
+
 [node name="Water" type="MeshInstance3D" parent="Level"]
 position = Vector3(0, -0.55, 10)
 mesh = SubResource("WaterMesh")
@@ -49,6 +71,10 @@ rotation = Vector3(0, -0.349066, 0)
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 position = Vector3(0, 0.9, -3)
+
+[node name="WaterSplash" type="GPUParticles3D" parent="Player"]
+script = ExtResource("11_splash")
+water_path = NodePath("../../Level/Water")
 
 [node name="HUD" type="CanvasLayer" parent="."]
 script = ExtResource("3_hud")
