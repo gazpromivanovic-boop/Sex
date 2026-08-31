@@ -166,11 +166,14 @@ extends CharacterBody3D
 @export var swim_speed: float = 2.1
 @export var swim_accel: float = 5.0
 ## Насколько тело утоплено, когда держится на воде. Голова должна остаться над
-## поверхностью, поэтому меньше роста.
-@export var float_depth: float = 1.30
+## поверхностью, поэтому меньше роста (модель 1.79). При 1.30 персонаж торчал из
+## воды по пояс: шейдер воды поднимает поверхность волной выше плоскости меша, и
+## расчётный уровень оказывается ниже видимого сантиметров на тридцать.
+@export var float_depth: float = 1.48
 ## Жёсткость выталкивания к поверхности.
 @export var buoyancy: float = 5.0
-## Скорость всплытия и погружения на пробеле и приседании.
+## Предел вертикальной скорости на плаву: выше него выталкивание не разгоняет.
+## Без предела пружина на большой глубине выстреливает тело свечой из воды.
 @export var swim_vertical: float = 1.6
 
 @export_group("Эмоции")
@@ -457,8 +460,11 @@ func stand_up() -> void:
 
 
 ## C листает позы по кругу, Shift возвращает в стойку.
+##
+## В воде позы выключены: клипы сидения и лежания рассчитаны на опору под тазом,
+## а поправка на грунт ищет пол лучом — на плаву пола нет, и поза уезжает.
 func _handle_pose_input() -> void:
-	if available_poses.is_empty():
+	if available_poses.is_empty() or swimming:
 		return
 	if posing and Input.is_action_just_pressed("sprint"):
 		stand_up()
@@ -511,10 +517,11 @@ func _swim_physics(delta: float) -> void:
 
 	# Выталкивание: тянем тело к уровню, на котором голова над водой. Пружиной, а
 	# не жёсткой установкой высоты — иначе на волне персонажа дёргает.
+	# Всплытие по пробелу убрано: оно спорило с выталкиванием и выбрасывало тело
+	# над поверхностью, а на границе с мелководьем ещё и переключало плавание на
+	# шаг и обратно каждый кадр. Держаться на воде — задача выталкивания.
 	var want := _water.global_position.y - float_depth
 	var lift := (want - global_position.y) * buoyancy
-	if Input.is_action_pressed("jump"):
-		lift += swim_vertical * 2.0
 	velocity.y = clampf(lift, -swim_vertical * 2.5, swim_vertical * 2.5)
 
 	move_and_slide()

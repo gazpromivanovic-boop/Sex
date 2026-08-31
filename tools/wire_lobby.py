@@ -59,10 +59,28 @@ rotation = Vector3(0, -1.570796, 0)
 position = Vector3(2.15, 0.55, 14)
 rotation = Vector3(0, -1.570796, 0)
 
+[node name="LampGlowA" type="OmniLight3D" parent="Level/LampA"]
+position = Vector3(0, 4.25, 0)
+light_color = Color(1, 0.83, 0.58, 1)
+light_energy = 3.2
+light_specular = 0.3
+shadow_enabled = true
+omni_range = 13.0
+omni_attenuation = 1.6
+
+[node name="LampGlowB" type="OmniLight3D" parent="Level/LampB"]
+position = Vector3(0, 4.25, 0)
+light_color = Color(1, 0.83, 0.58, 1)
+light_energy = 3.2
+light_specular = 0.3
+shadow_enabled = true
+omni_range = 13.0
+omni_attenuation = 1.6
+
 [node name="Rocks" type="Node3D" parent="Level"]
 script = ExtResource("20_scatter")
 scenes = Array[PackedScene]([ExtResource("21_ra"), ExtResource("22_rb"), ExtResource("23_rc"), ExtResource("24_rd")])
-count = 46
+count = 14
 seed_value = 4471
 area = Vector2(116, 46)
 area_center = Vector3(0, 0, -24)
@@ -73,7 +91,7 @@ scale_range = Vector2(0.35, 1.2)
 [node name="Pebbles" type="Node3D" parent="Level"]
 script = ExtResource("20_scatter")
 scenes = Array[PackedScene]([ExtResource("21_ra"), ExtResource("22_rb"), ExtResource("24_rd")])
-count = 130
+count = 40
 seed_value = 6120
 area = Vector2(118, 22)
 area_center = Vector3(0, 0, -8)
@@ -85,7 +103,7 @@ sink = 0.04
 [node name="Logs" type="Node3D" parent="Level"]
 script = ExtResource("20_scatter")
 scenes = Array[PackedScene]([ExtResource("25_log"), ExtResource("33_logb")])
-count = 9
+count = 5
 seed_value = 8812
 area = Vector2(100, 34)
 area_center = Vector3(0, 0, -26)
@@ -97,13 +115,13 @@ tilt_deg = 6.0
 [node name="Grass" type="Node3D" parent="Level"]
 script = ExtResource("20_scatter")
 scenes = Array[PackedScene]([ExtResource("26_gp"), ExtResource("27_gd")])
-count = 220
+count = 60
 seed_value = 3305
 area = Vector2(112, 40)
 area_center = Vector3(0, 0, -28)
 min_height = 0.7
 max_height = 9.0
-scale_range = Vector2(0.6, 1.6)
+scale_range = Vector2(0.35, 0.8)
 sink = 0.06
 tilt_deg = 5.0
 
@@ -215,7 +233,9 @@ def main():
         if header.startswith("[ext_resource"):
             if attr(header, "id") in mine_ids or attr(header, "path") in mine_paths:
                 continue
-        elif node_name(header) in mine_nodes:
+        elif re.sub(r"\d+$", "", node_name(header) or "") in mine_nodes:
+            # Редактор дописывает цифру к имени при столкновении: CoverChairA2.
+            # Такой хвост — тоже наш узел, иначе дубли копятся в сцене.
             continue
         kept.append([header, body])
 

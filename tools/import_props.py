@@ -68,11 +68,19 @@ PROPS = [
      "name": "log", "height": 0.62, "budget": 1400, "texture": 512},
     {"src": ROCKS + "/pier-ground-tile/source/Pier Ground Tile.obj",
      "name": "tile", "height": 0.14, "budget": 600, "texture": 1024},
-    # Трава: настоящие кустики вместо моих конусов.
+    # Трава: плоские карточки с прозрачностью. Прореживать их нельзя — decimate
+    # рвёт карточки на треугольники, и вместо кустиков получаются осколки.
+    # Бюджет 0 отключает прореживание, сетка тут и так копеечная.
     {"src": ROCKS + "/grass-patches/source/grasspatches.fbx",
-     "name": "grass_patch", "height": 0.55, "budget": 900, "texture": 512},
+     "name": "grass_patch", "height": 0.55, "budget": 0, "texture": 1024,
+     # Именно AlphaMapped: это цвет с готовым альфа-каналом. Соседний
+     # grasscolor.png — тот же рисунок, но на непрозрачном фоне, и маски к нему
+     # в поставке нет.
+     "color_map": ROCKS + "/grass-patches/textures/grassAlphaMapped.png"},
     {"src": ROCKS + "/dry-grass/source/sketchfabGrass.fbx",
-     "name": "grass_dry", "height": 0.45, "budget": 700, "texture": 512},
+     "name": "grass_dry", "height": 0.45, "budget": 0, "texture": 1024,
+     "color_map": ROCKS + "/dry-grass/textures/dry_grass_V1_basecolor.tga.png",
+     "alpha_map": ROCKS + "/dry-grass/textures/dry_grass_V1_opacity.tga.png"},
     # Из .rar: распаковщик нашёлся у WinRAR.
     {"src": ROCKS + "/ruined-rock-fence/source/unpacked/stone_fence_old_low.fbx",
      "name": "fence", "height": 1.25, "budget": 1600, "texture": 1024},
@@ -120,6 +128,48 @@ def cap_textures(max_size):
             k = float(max_size) / max(w, h)
             img.scale(max(1, int(w * k)), max(1, int(h * k)))
             print("###        текстура %dx%d -> %dx%d" % (w, h, img.size[0], img.size[1]))
+
+
+def cutout_material(obj, color_path, alpha_path=None):
+    """Материал для карточек с прозрачностью: вырез по маске, двусторонний.
+
+    Прозрачность берётся из четвёртого канала самой карты цвета, а если её там
+    нет — из отдельной маски. Сшивать две картинки в одну RGBA вручную я
+    пробовал: Blender сохраняет PNG с тем же числом каналов, что у исходника, и
+    альфа из трёхканального цвета пропадала. Отдельную маску экспортёр glTF
+    собирает в четвёртый канал сам — это его штатная работа, та же, что с
+    металличностью и шероховатостью.
+
+    Вырез, а не полупрозрачность: у полупрозрачности порядок отрисовки зависит
+    от угла камеры, и кустики начинают мигать друг сквозь друга. Односторонний
+    материал тоже не годится — карточку видно с обеих сторон.
+    """
+    mat = bpy.data.materials.new(obj.name + "_cutout")
+    mat.use_nodes = True
+    tree = mat.node_tree
+    bsdf = next(n for n in tree.nodes if n.type == "BSDF_PRINCIPLED")
+
+    color = tree.nodes.new("ShaderNodeTexImage")
+    color.image = bpy.data.images.load(color_path)
+    color.location = (bsdf.location.x - 380, bsdf.location.y)
+    tree.links.new(bsdf.inputs["Base Color"], color.outputs["Color"])
+
+    if alpha_path is None:
+        tree.links.new(bsdf.inputs["Alpha"], color.outputs["Alpha"])
+    else:
+        mask = tree.nodes.new("ShaderNodeTexImage")
+        mask.image = bpy.data.images.load(alpha_path)
+        mask.image.colorspace_settings.name = "Non-Color"
+        mask.location = (bsdf.location.x - 380, bsdf.location.y - 320)
+        tree.links.new(bsdf.inputs["Alpha"], mask.outputs["Color"])
+
+    bsdf.inputs["Roughness"].default_value = 0.9
+    bsdf.inputs["Specular IOR Level"].default_value = 0.15
+    mat.blend_method = "CLIP"          # в glTF уезжает как alphaMode=MASK
+    mat.alpha_threshold = 0.4
+    mat.use_backface_culling = False
+    obj.data.materials.clear()
+    obj.data.materials.append(mat)
 
 
 def force_texture(obj, path):
@@ -190,7 +240,7 @@ def prepare(prop):
     # по граням, а триангуляция после него добавляет треугольники сверху — с
     # одного прохода стул промахивался мимо бюджета почти вдвое.
     before = count_tris()
-    for _ in range(4):
+    for _ in range(4 if prop["budget"] > 0 else 0):
         current = count_tris()
         if current <= prop["budget"] * 1.05:
             break
@@ -216,6 +266,8 @@ def prepare(prop):
                     obj.location.z - lo[2])
     bpy.ops.object.transform_apply(location=True)
 
+    if prop.get("color_map"):
+        cutout_material(obj, prop["color_map"], prop.get("alpha_map"))
     if prop.get("texture_file"):
         force_texture(obj, prop["texture_file"])
     cap_textures(prop.get("texture", 1024))

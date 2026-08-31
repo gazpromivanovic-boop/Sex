@@ -22,9 +22,9 @@ extends Node3D
 @export var gulls: Array[AudioStream] = []
 
 @export_group("Громкость, дБ")
-@export var surf_db: float = -8.0
+@export var surf_db: float = -12.0
 @export var wind_db: float = -20.0
-@export var bed_db: float = -11.0
+@export var bed_db: float = -5.0
 @export var gull_db: float = -6.0
 
 @export_group("Чайки")
