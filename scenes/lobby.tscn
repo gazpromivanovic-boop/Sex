@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
@@ -11,6 +11,8 @@
 [ext_resource type="Shader" path="res://assets/shaders/sand.gdshader" id="9_sand"]
 [ext_resource type="Script" path="res://scripts/material_painter.gd" id="10_painter"]
 [ext_resource type="Script" path="res://scripts/water_splash.gd" id="11_splash"]
+[ext_resource type="PackedScene" path="res://assets/models/house.glb" id="12_house"]
+[ext_resource type="PackedScene" path="res://assets/models/chair.glb" id="13_chair"]
 
 [sub_resource type="ShaderMaterial" id="SandMat"]
 shader = ExtResource("9_sand")
@@ -64,6 +66,22 @@ mesh_names = Array[String](["Land", "Seabed", "Dunes"])
 position = Vector3(0, -0.55, 10)
 mesh = SubResource("WaterMesh")
 cast_shadow = 0
+
+[node name="House" parent="Level" instance=ExtResource("12_house")]
+position = Vector3(-9.5, 0, -11.0)
+rotation = Vector3(0, 0.523599, 0)
+
+[node name="ChairPierA" parent="Level" instance=ExtResource("13_chair")]
+position = Vector3(1.55, 0.55, 3.4)
+rotation = Vector3(0, -1.919862, 0)
+
+[node name="ChairPierB" parent="Level" instance=ExtResource("13_chair")]
+position = Vector3(-1.6, 0.55, 5.8)
+rotation = Vector3(0, 1.396263, 0)
+
+[node name="ChairShore" parent="Level" instance=ExtResource("13_chair")]
+position = Vector3(-5.8, 0.0, -8.4)
+rotation = Vector3(0, 0.959931, 0)
 
 [node name="Bathyscaphe" parent="Level" instance=ExtResource("7_sub")]
 position = Vector3(7.6, -3.6, 9.5)

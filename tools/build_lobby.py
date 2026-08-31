@@ -12,7 +12,7 @@
 Разметка (координаты Godot: Y вверх, −Z вперёд):
     берег занимает z от +6 и дальше, вода начинается на z = +6;
     пирс уходит от берега в −Z до z = −20;
-    дом стоит слева от пирса, крыльцом к воде;
+    дом — готовая модель house.glb, её ставит сцена;
     батискаф швартуется справа от пирса — его ставит уже сцена, не этот скрипт.
 """
 
@@ -201,85 +201,12 @@ def build_pier_props(mats):
 # ─────────────────────────────────────────────────────────────── дом
 
 
-def build_house(mats):
-    """Домик смотрителя: сруб с двускатной крышей, крыльцом к пирсу.
-
-    Стены собраны отдельными плитами, а НЕ вырезаны булевой операцией из куба.
-    Разница принципиальная: на полую оболочку Godot вешает коллизию по мешу, у
-    неё нет «внутри», и цилиндр персонажа в тонкой стенке заклинивает намертво.
-    Плиты выпуклые, и между ними нечему клинить, а дверной проём получается
-    настоящим — из двух простенков и перемычки.
-    """
-    x0, y0 = P["house_x"], P["house_y"]
-    w, d, h = P["house_w"], P["house_d"], P["house_h"]
-    t = P["wall"]
-    door_w, door_h = P["door_w"], P["door_h"]
-    parts = []
-
-    walls = [box((x0, y0 + d / 2 - t / 2, h / 2), (w, t, h))]          # задняя
-    for sx in (-1, 1):
-        walls.append(box((x0 + sx * (w / 2 - t / 2), y0, h / 2), (t, d - t * 2, h)))
-    pier = (w - door_w) / 2                                            # простенки
-    for sx in (-1, 1):
-        walls.append(box((x0 + sx * (door_w / 2 + pier / 2), y0 - d / 2 + t / 2, h / 2),
-                         (pier, t, h)))
-    walls.append(box((x0, y0 - d / 2 + t / 2, (door_h + h) / 2),       # перемычка
-                     (door_w, t, h - door_h)))
-    # фронтоны: треугольник под скатами, иначе с торца видно тёмную пустоту
-    for sy in (-1, 1):
-        walls.append(wedge((x0, y0 + sy * (d / 2 - t / 2), h + P["roof_h"] / 2),
-                           (w, t, P["roof_h"])))
-    body = join(walls, "House_Walls-col", mats["wood_dark"])
-
-    # окна режем уже в плитах: щель в 0.28 м уже цилиндра персонажа (0.64 м),
-    # залезть в неё он не сможет при всём желании
-    for sx in (-1, 1):
-        boolean(body, box((x0 + sx * 2.9, y0 - d / 2, 2.15), (1.3, 1.0, 1.1)))
-    boolean(body, box((x0 + w / 2, y0 + 1.2, 2.15), (1.0, 1.4, 1.1)))
-    parts.append(body)
-
-    floor = box((x0, y0, 0.07), (w - t * 2, d - t * 2, 0.14))
-    parts.append(rename(floor, "House_Floor-col", mats["wood"]))
-
-    # Двускатная крыша из двух плит, а не из призмы со сведёнными вершинами:
-    # правка вершин давала односкатный навес, конёк из неё не получался.
-    span = (w + 0.7) / 2.0
-    pitch = math.atan2(P["roof_h"], span)
-    slab = math.hypot(span, P["roof_h"])
-    slabs = []
-    for sx in (-1, 1):
-        r = box((0, 0, 0), (slab, d + 0.6, 0.18))
-        r.rotation_euler = (0, sx * pitch, 0)
-        r.location = (x0 + sx * span / 2, y0, h + P["roof_h"] / 2)
-        slabs.append(r)
-    slabs.append(box((x0, y0, h + P["roof_h"]), (0.3, d + 0.7, 0.22)))  # конёк
-    parts.append(join(slabs, "House_Roof-col", mats["roof"]))
-
-    glass = []
-    for sx in (-1, 1):
-        glass.append(box((x0 + sx * 2.9, y0 - d / 2 + 0.02, 2.15), (1.2, 0.06, 1.0)))
-    glass.append(box((x0 + w / 2 - 0.02, y0 + 1.2, 2.15), (0.06, 1.3, 1.0)))
-    parts.append(join(glass, "House_Windows", mats["glass"]))
-
-    porch = [box((x0, y0 - d / 2 - 1.4, 0.2), (w * 0.75, 2.8, 0.4))]
-    for sx in (-1, 1):
-        porch.append(box((x0 + sx * (w * 0.35), y0 - d / 2 - 2.6, 1.5),
-                         (0.16, 0.16, 2.6)))
-    porch.append(box((x0, y0 - d / 2 - 2.6, 2.85), (w * 0.78, 0.2, 0.3)))
-    canopy = box((x0, y0 - d / 2 - 1.5, 3.02), (w * 0.78, 3.2, 0.16))
-    canopy.rotation_euler = (math.radians(6), 0, 0)
-    porch.append(canopy)
-    parts.append(join(porch, "House_Porch-col", mats["wood"]))
-
-    path = box((x0 * 0.5, (y0 - d / 2 - 2.8 + P["shore_y"]) / 2, 0.06),
-               (2.2, y0 - d / 2 - 2.8 - P["shore_y"] + 2.0, 0.12))
-    path.rotation_euler = (0, 0, math.radians(-14))
-    parts.append(rename(path, "Path", mats["stone"]))
-
-    chimney = box((x0 - w / 4, y0 + 1.0, h + P["roof_h"] * 0.7),
-                  (0.8, 0.8, P["roof_h"] * 1.3))
-    parts.append(rename(bevel(chimney, 0.03), "Chimney-col", mats["stone"]))
-    return parts
+def build_path(mats):
+    """Тропинка от берега к пирсу. Дом теперь готовая модель (assets/models/
+    house.glb), её ставит сцена — собирать коробку заново незачем."""
+    path = box((-5.0, P["shore_y"] + 4.0, 0.06), (2.4, 12.0, 0.12))
+    path.rotation_euler = (0, 0, math.radians(-18))
+    return [rename(path, "Path", mats["stone"])]
 
 
 # ─────────────────────────────────────────────────────────────── вывод
@@ -301,7 +228,7 @@ def main():
     }
 
     parts = []
-    for builder in (build_land, build_pier, build_pier_props, build_house):
+    for builder in (build_land, build_pier, build_pier_props, build_path):
         parts += builder(mats)
     print("### частей:", len(parts), "->", ", ".join(p.name for p in parts))
 
