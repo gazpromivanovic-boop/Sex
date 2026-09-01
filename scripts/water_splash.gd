@@ -2,17 +2,22 @@ class_name WaterSplash
 extends GPUParticles3D
 ## Брызги из-под ног, когда идёшь по мелководью.
 ##
-## Узел сам собирает себе материал частиц и меш: в сцене достаточно положить его
-## под персонажа и указать уровень воды. Настраивать вручную десяток свойств
-## GPUParticles3D не нужно — всё, что реально хочется крутить, вынесено сюда.
+## Узел сам собирает себе материалы и меши: в сцене достаточно положить его под
+## персонажа. Настраивать вручную десяток свойств GPUParticles3D не нужно — всё,
+## что реально хочется крутить, вынесено сюда.
 ##
-## Брызги привязаны к поверхности воды, а не к ступням: эмиттер каждый кадр
-## переезжает под персонажа на уровень воды. Иначе на глубине частицы рождались
-## бы под водой и оттуда не видны.
+## Эффектов два, и второй не менее важен первого. Брызги без кругов по воде
+## читаются висящей в воздухе пылью: глазу не за что зацепиться, чтобы понять,
+## что внизу вода. Круги живут на дочернем узле, потому что им нужна своя
+## ориентация — они лежат на поверхности плашмя, а брызги развёрнуты к камере.
+##
+## И те и другие привязаны к поверхности воды, а не к ступням: эмиттер каждый
+## кадр переезжает под персонажа на текущий уровень волны. Иначе на глубине
+## частицы рождались бы под водой и оттуда не видны.
 
 ## За кем следим. Пусто — берём родителя.
 @export_node_path("Node3D") var body_path: NodePath
-## Узел воды: с него берётся высота поверхности. Если не задан, берётся water_level.
+## Запасной узел воды, если нет автозагрузки Ocean. Пусто — берём water_level.
 @export_node_path("Node3D") var water_path: NodePath
 @export var water_level: float = 0.0
 
@@ -24,14 +29,29 @@ extends GPUParticles3D
 ## На этой скорости брызг максимум.
 @export var full_speed: float = 5.0
 
-@export_group("Вид")
-@export var splash_color: Color = Color(0.92, 0.97, 1.0, 0.85)
-@export var splash_scale: float = 0.10
-@export var splash_speed: float = 2.2
+@export_group("Брызги")
+@export var spray_shader: Shader = preload("res://assets/shaders/splash.gdshader")
+@export var splash_color: Color = Color(0.93, 0.97, 1.0, 0.9)
+## Размер клока взвеси, метры.
+@export var splash_size: Vector2 = Vector2(0.07, 0.17)
+## С какой скоростью капли срываются вверх.
+@export var splash_speed: float = 2.4
+
+@export_group("Круги по воде")
+@export var ring_shader: Shader = preload("res://assets/shaders/ripple_ring.gdshader")
+@export var ring_color: Color = Color(0.95, 0.99, 1.0, 0.5)
+## Поперечник круга в конце расхождения, метры.
+@export var ring_size: Vector2 = Vector2(0.9, 1.7)
+## Сколько живёт один круг. Дольше брызг: вода успокаивается не сразу.
+@export var ring_life: float = 1.3
+## Насколько поднять круги над поверхностью, чтобы они не спорили с водой за
+## порядок отрисовки. Меньше сантиметра, на глаз незаметно.
+@export var ring_lift: float = 0.02
 
 var _body: Node3D
 var _water: Node3D
 var _ocean: Node                          ## автозагрузка Ocean3D, если она есть
+var _rings: GPUParticles3D
 var _last_pos: Vector3
 var _speed: float = 0.0
 
@@ -50,46 +70,103 @@ func _ready() -> void:
 
 	top_level = true          # эмиттер живёт в мире, а не в системе персонажа
 	emitting = false
-	amount = 48
-	lifetime = 0.7
+	amount = 56
+	lifetime = 0.75
 	explosiveness = 0.0
-	randomness = 0.4
-	if process_material == null:
-		process_material = _make_process_material()
-	if draw_pass_1 == null:
-		draw_pass_1 = _make_mesh()
+	randomness = 0.5
+	process_material = _make_spray_process()
+	draw_pass_1 = _make_spray_mesh()
+
+	_rings = GPUParticles3D.new()
+	_rings.name = "Rings"
+	_rings.top_level = true
+	_rings.emitting = false
+	_rings.amount = 12
+	_rings.lifetime = ring_life
+	_rings.explosiveness = 0.0
+	_rings.randomness = 0.4
+	_rings.process_material = _make_ring_process()
+	_rings.draw_pass_1 = _make_ring_mesh()
+	add_child(_rings)
+
 	if _body != null:
 		_last_pos = _body.global_position
 
 
-func _make_process_material() -> ParticleProcessMaterial:
+## Общая часть: обе системы гасят частицу к концу жизни одной и той же рампой.
+func _fade_ramp() -> GradientTexture1D:
+	var fade := Gradient.new()
+	fade.offsets = PackedFloat32Array([0.0, 0.15, 1.0])
+	fade.colors = PackedColorArray([
+		Color(1, 1, 1, 0.0), Color(1, 1, 1, 1.0), Color(1, 1, 1, 0.0)])
+	var ramp := GradientTexture1D.new()
+	ramp.gradient = fade
+	return ramp
+
+
+func _make_spray_process() -> ParticleProcessMaterial:
 	var m := ParticleProcessMaterial.new()
 	m.direction = Vector3(0, 1, 0)
-	m.spread = 55.0
-	m.initial_velocity_min = splash_speed * 0.5
+	m.spread = 58.0
+	m.initial_velocity_min = splash_speed * 0.45
 	m.initial_velocity_max = splash_speed
-	m.gravity = Vector3(0, -9.0, 0)          # капли падают обратно в воду
-	m.scale_min = splash_scale * 0.4
-	m.scale_max = splash_scale
-	m.damping_min = 0.5
-	m.damping_max = 1.5
-	m.color = splash_color
-	# капли рождаются не в точке, а в пятне под ногами
+	m.gravity = Vector3(0, -11.0, 0)      # капли падают обратно в воду
+	m.scale_min = splash_size.x
+	m.scale_max = splash_size.y
+	m.damping_min = 0.4
+	m.damping_max = 1.6
+	# Свой поворот каждой капле: шейдер берёт его и как разворот на экране, и
+	# как зерно для рисунка капель.
+	m.angle_min = -180.0
+	m.angle_max = 180.0
+	# Капли рождаются не в точке, а в пятне под ногами.
 	m.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
-	m.emission_sphere_radius = 0.28
+	m.emission_sphere_radius = 0.3
+	m.color_ramp = _fade_ramp()
 	return m
 
 
-func _make_mesh() -> Mesh:
+func _make_spray_mesh() -> Mesh:
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.vertex_color_use_as_albedo = true
-	mat.albedo_color = splash_color
-	mat.disable_receive_shadows = true
+	var mat := ShaderMaterial.new()
+	mat.shader = spray_shader
+	mat.set_shader_parameter("tint", splash_color)
+	quad.material = mat
+	return quad
+
+
+func _make_ring_process() -> ParticleProcessMaterial:
+	var m := ParticleProcessMaterial.new()
+	# Круг не летит и не падает: он стоит на месте, а расходится рисунок внутри
+	# квадрата. Так одна частица даёт всю волну целиком.
+	m.direction = Vector3(0, 1, 0)
+	m.spread = 0.0
+	m.initial_velocity_min = 0.0
+	m.initial_velocity_max = 0.0
+	m.gravity = Vector3.ZERO
+	m.scale_min = ring_size.x
+	m.scale_max = ring_size.y
+	m.angle_min = -180.0
+	m.angle_max = 180.0            # зерно для рваности края
+	m.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	m.emission_sphere_radius = 0.22
+	m.color_ramp = _fade_ramp()
+	return m
+
+
+func _make_ring_mesh() -> Mesh:
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE
+	# Плашмя, а не к камере: круг лежит на воде. Отсюда же и отдельный узел —
+	# развернуть половину частиц одной системы иначе нельзя.
+	quad.orientation = PlaneMesh.FACE_Y
+	var mat := ShaderMaterial.new()
+	mat.shader = ring_shader
+	mat.set_shader_parameter("tint", ring_color)
+	# Поверх воды: обе поверхности прозрачные и глубину не пишут, порядок между
+	# ними решается приоритетом.
+	mat.render_priority = 1
 	quad.material = mat
 	return quad
 
@@ -113,8 +190,18 @@ func _physics_process(delta: float) -> void:
 		water_level = _water.global_position.y
 	var depth := water_level - pos.y          # больше нуля — ступни под водой
 	var wading := depth > -0.05 and depth < wade_depth
-	emitting = wading and _speed > min_speed
-	if emitting:
-		global_position = Vector3(pos.x, water_level, pos.z)
-		amount_ratio = clampf((_speed - min_speed) / maxf(full_speed - min_speed, 0.01),
-			0.25, 1.0)
+	var active := wading and _speed > min_speed
+
+	emitting = active
+	_rings.emitting = active
+	if not active:
+		return
+
+	global_position = Vector3(pos.x, water_level, pos.z)
+	_rings.global_position = Vector3(pos.x, water_level + ring_lift, pos.z)
+	var force := clampf((_speed - min_speed) / maxf(full_speed - min_speed, 0.01),
+		0.25, 1.0)
+	amount_ratio = force
+	# Кругов заметно меньше, чем капель: на каждый шаг их нужен один-два, а не
+	# горсть. Полная плотность превращает след в сплошную пенную полосу.
+	_rings.amount_ratio = clampf(force * 0.6, 0.15, 0.7)
