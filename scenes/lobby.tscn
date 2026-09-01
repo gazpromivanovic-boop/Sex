@@ -15,6 +15,7 @@
 [ext_resource type="Script" uid="uid://vs8dr2i2g6iq" path="res://scripts/ambience.gd" id="14_amb"]
 [ext_resource type="AudioStream" uid="uid://yk5yculywkgo" path="res://assets/audio/surf_loop.wav" id="15_surf"]
 [ext_resource type="AudioStream" uid="uid://dg2qs4yd5povt" path="res://assets/audio/wind_loop.wav" id="16_wind"]
+[ext_resource type="Script" uid="uid://b4hdigfiiit3j" path="res://scripts/shore_mist.gd" id="43_mist"]
 [ext_resource type="Script" path="res://scripts/scatter.gd" id="20_scatter"]
 [ext_resource type="Script" path="res://scripts/row.gd" id="30_row"]
 [ext_resource type="Script" path="res://scripts/ground_snap.gd" id="36_snap"]
@@ -36,8 +37,12 @@
 [ext_resource type="Script" path="res://scripts/ocean_skin.gd" id="40_skin"]
 [ext_resource type="Shader" path="res://assets/shaders/ocean_bay.gdshader" id="41_wshader"]
 [ext_resource type="Texture2D" path="res://assets/water/EA_Water_Normal.tres" id="42_wnormal"]
-[ext_resource type="Script" path="res://scripts/shore_mist.gd" id="43_mist"]
+[ext_resource type="Script" path="res://scripts/haze.gd" id="43_mist"]
 [ext_resource type="Script" path="res://scripts/underwater.gd" id="44_under"]
+[ext_resource type="Script" path="res://scripts/swimmer.gd" id="45_swim"]
+[ext_resource type="PackedScene" path="res://assets/models/turtle.glb" id="46_turtle"]
+[ext_resource type="PackedScene" path="res://assets/models/manta.glb" id="47_manta"]
+[ext_resource type="Script" path="res://scripts/ocean_preview.gd" id="48_preview"]
 
 [sub_resource type="ShaderMaterial" id="SandMat"]
 render_priority = 0
@@ -62,6 +67,60 @@ shader_parameter/grain_scale = 42.0
 
 [sub_resource type="BoxShape3D" id="ArchBlock"]
 size = Vector3(9, 14, 2)
+
+[sub_resource type="Gradient" id="Gradient_tuh25"]
+offsets = PackedFloat32Array(0, 0.25, 0.7, 1)
+colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_8tmsf"]
+gradient = SubResource("Gradient_tuh25")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_gxh4y"]
+emission_shape = 3
+emission_box_extents = Vector3(75, 0.4, 11)
+angle_min = -180.0
+angle_max = 180.0
+direction = Vector3(0, 1, 0)
+spread = 12.0
+initial_velocity_min = 0.07777778
+initial_velocity_max = 0.23333333
+angular_velocity_min = -3.0
+angular_velocity_max = 3.0
+gravity = Vector3(0.35, 0.05, 0.12)
+damping_max = 0.05
+scale_min = 6.0
+scale_max = 15.0
+color = Color(0.88, 0.74, 0.68, 0.09)
+color_ramp = SubResource("GradientTexture1D_8tmsf")
+
+[sub_resource type="Gradient" id="Gradient_30fw8"]
+offsets = PackedFloat32Array(0, 0.45, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.55, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_7rn74"]
+gradient = SubResource("Gradient_30fw8")
+width = 128
+height = 128
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_30el1"]
+transparency = 1
+depth_draw_mode = 2
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.88, 0.74, 0.68, 0.09)
+albedo_texture = SubResource("GradientTexture2D_7rn74")
+disable_receive_shadows = true
+billboard_mode = 1
+billboard_keep_scale = true
+distance_fade_mode = 1
+distance_fade_min_distance = 2.0
+distance_fade_max_distance = 0.5
+
+[sub_resource type="QuadMesh" id="QuadMesh_s3vw1"]
+material = SubResource("StandardMaterial3D_30el1")
 
 [node name="Lobby" type="Node3D" unique_id=996390571]
 script = ExtResource("1_main")
@@ -181,14 +240,87 @@ foam_cutoff = 0.55
 caustics_strength = 0.22
 sparkle_boost = 0.25
 
+[node name="OceanPreview" type="Node" parent="Ocean"]
+script = ExtResource("48_preview")
+shader = ExtResource("41_wshader")
+wave_profile = ExtResource("38_waves")
+skin_path = NodePath("../OceanSkin")
+size = 230.0
+subdiv = 120
+
 [node name="ShoreMist" type="GPUParticles3D" parent="."]
 position = Vector3(0, 0.5, 2)
 script = ExtResource("43_mist")
 span = Vector2(150, 22)
 height = 3.5
+count = 44
+life = 18.0
 mist_color = Color(0.88, 0.74, 0.68, 0.09)
 puff_size = Vector2(6, 15)
 drift = Vector3(0.35, 0.05, 0.12)
+
+[node name="Motes" type="GPUParticles3D" parent="."]
+position = Vector3(0, -4.5, 52)
+script = ExtResource("43_mist")
+span = Vector2(130, 95)
+height = 7.0
+count = 240
+life = 26.0
+mist_color = Color(0.72, 0.88, 0.88, 0.055)
+puff_size = Vector2(0.05, 0.22)
+drift = Vector3(0.05, 0.1, -0.04)
+
+[node name="Reef" type="Node3D" parent="Level"]
+script = ExtResource("20_scatter")
+scenes = Array[PackedScene]([ExtResource("21_ra"), ExtResource("22_rb"), ExtResource("23_rc"), ExtResource("24_rd")])
+count = 26
+seed_value = 7710
+area = Vector2(150, 95)
+area_center = Vector3(0, 0, 50)
+min_height = -9.5
+max_height = -1.2
+scale_range = Vector2(0.5, 2.2)
+sink = 0.25
+tilt_deg = 16.0
+collision = false
+
+[node name="Manta" parent="." instance=ExtResource("47_manta")]
+transform = Transform3D(0.55, 0, 0, 0, 0.55, 0, 0, 0, 0.55, 0, -4.2, 58)
+script = ExtResource("45_swim")
+radius = Vector2(26, 17)
+period = 46.0
+tilt_deg = 6.0
+bob = 0.9
+bob_period = 17.0
+bank_deg = 10.0
+facing_offset_deg = 180.0
+
+[node name="TurtleA" parent="." instance=ExtResource("46_turtle")]
+transform = Transform3D(0.45, 0, 0, 0, 0.45, 0, 0, 0, 0.45, -16, -2.6, 42)
+script = ExtResource("45_swim")
+radius = Vector2(11, 7)
+period = 27.0
+phase = 0.15
+facing_offset_deg = 180.0
+
+[node name="TurtleB" parent="." instance=ExtResource("46_turtle")]
+transform = Transform3D(0.38, 0, 0, 0, 0.38, 0, 0, 0, 0.38, 15, -3.4, 54)
+script = ExtResource("45_swim")
+radius = Vector2(9, 13)
+period = 32.0
+phase = 0.6
+tilt_deg = 11.0
+facing_offset_deg = 180.0
+
+[node name="TurtleC" parent="." instance=ExtResource("46_turtle")]
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, -4, -5.6, 70)
+script = ExtResource("45_swim")
+radius = Vector2(15, 10)
+period = 38.0
+phase = 0.35
+tilt_deg = 5.0
+bob = 1.2
+facing_offset_deg = 180.0
 
 [node name="Underwater" type="Node" parent="."]
 script = ExtResource("44_under")

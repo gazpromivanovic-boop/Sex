@@ -44,8 +44,12 @@ EXT = [
     ("40_skin", "Script", "res://scripts/ocean_skin.gd"),
     ("41_wshader", "Shader", "res://assets/shaders/ocean_bay.gdshader"),
     ("42_wnormal", "Texture2D", "res://assets/water/EA_Water_Normal.tres"),
-    ("43_mist", "Script", "res://scripts/shore_mist.gd"),
+    ("43_mist", "Script", "res://scripts/haze.gd"),
     ("44_under", "Script", "res://scripts/underwater.gd"),
+    ("45_swim", "Script", "res://scripts/swimmer.gd"),
+    ("46_turtle", "PackedScene", "res://assets/models/turtle.glb"),
+    ("47_manta", "PackedScene", "res://assets/models/manta.glb"),
+    ("48_preview", "Script", "res://scripts/ocean_preview.gd"),
 ]
 
 NODES = """
@@ -75,14 +79,87 @@ foam_cutoff = 0.55
 caustics_strength = 0.22
 sparkle_boost = 0.25
 
+[node name="OceanPreview" type="Node" parent="Ocean"]
+script = ExtResource("48_preview")
+shader = ExtResource("41_wshader")
+wave_profile = ExtResource("38_waves")
+skin_path = NodePath("../OceanSkin")
+size = 230.0
+subdiv = 120
+
 [node name="ShoreMist" type="GPUParticles3D" parent="."]
 position = Vector3(0, 0.5, 2)
 script = ExtResource("43_mist")
 span = Vector2(150, 22)
 height = 3.5
+count = 44
+life = 18.0
 mist_color = Color(0.88, 0.74, 0.68, 0.09)
 puff_size = Vector2(6, 15)
 drift = Vector3(0.35, 0.05, 0.12)
+
+[node name="Motes" type="GPUParticles3D" parent="."]
+position = Vector3(0, -4.5, 52)
+script = ExtResource("43_mist")
+span = Vector2(130, 95)
+height = 7.0
+count = 240
+life = 26.0
+mist_color = Color(0.72, 0.88, 0.88, 0.055)
+puff_size = Vector2(0.05, 0.22)
+drift = Vector3(0.05, 0.1, -0.04)
+
+[node name="Reef" type="Node3D" parent="Level"]
+script = ExtResource("20_scatter")
+scenes = Array[PackedScene]([ExtResource("21_ra"), ExtResource("22_rb"), ExtResource("23_rc"), ExtResource("24_rd")])
+count = 26
+seed_value = 7710
+area = Vector2(150, 95)
+area_center = Vector3(0, 0, 50)
+min_height = -9.5
+max_height = -1.2
+scale_range = Vector2(0.5, 2.2)
+sink = 0.25
+tilt_deg = 16.0
+collision = false
+
+[node name="Manta" parent="." instance=ExtResource("47_manta")]
+transform = Transform3D(0.55, 0, 0, 0, 0.55, 0, 0, 0, 0.55, 0, -4.2, 58)
+script = ExtResource("45_swim")
+radius = Vector2(26, 17)
+period = 46.0
+tilt_deg = 6.0
+bob = 0.9
+bob_period = 17.0
+bank_deg = 10.0
+facing_offset_deg = 180.0
+
+[node name="TurtleA" parent="." instance=ExtResource("46_turtle")]
+transform = Transform3D(0.45, 0, 0, 0, 0.45, 0, 0, 0, 0.45, -16, -2.6, 42)
+script = ExtResource("45_swim")
+radius = Vector2(11, 7)
+period = 27.0
+phase = 0.15
+facing_offset_deg = 180.0
+
+[node name="TurtleB" parent="." instance=ExtResource("46_turtle")]
+transform = Transform3D(0.38, 0, 0, 0, 0.38, 0, 0, 0, 0.38, 15, -3.4, 54)
+script = ExtResource("45_swim")
+radius = Vector2(9, 13)
+period = 32.0
+phase = 0.6
+tilt_deg = 11.0
+facing_offset_deg = 180.0
+
+[node name="TurtleC" parent="." instance=ExtResource("46_turtle")]
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, -4, -5.6, 70)
+script = ExtResource("45_swim")
+radius = Vector2(15, 10)
+period = 38.0
+phase = 0.35
+tilt_deg = 5.0
+bob = 1.2
+facing_offset_deg = 180.0
 
 [node name="Underwater" type="Node" parent="."]
 script = ExtResource("44_under")

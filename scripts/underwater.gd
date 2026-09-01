@@ -19,6 +19,10 @@ extends Node
 @export_group("Под водой")
 @export var fog_color: Color = Color(0.05, 0.21, 0.27)
 @export var fog_density: float = 0.11
+## Плотность объёмного тумана под водой. Он и даёт лучи: солнце низкое, и в
+## плотной среде его свет становится видимым столбами.
+@export var volume_density: float = 0.055
+@export var volume_albedo: Color = Color(0.32, 0.62, 0.66)
 ## Насколько глубоко под поверхностью эффект набирает полную силу, метры.
 @export var fade_depth: float = 0.6
 ## Скорость перехода. Мгновенный переключатель бьёт по глазам на каждой волне.
@@ -34,6 +38,8 @@ var _dry_color: Color
 var _dry_density: float
 var _dry_sky: float
 var _dry_scatter: float
+var _dry_volume: float
+var _dry_volume_albedo: Color
 
 
 func _ready() -> void:
@@ -52,6 +58,8 @@ func _ready() -> void:
 	_dry_density = _env.fog_density
 	_dry_sky = _env.fog_sky_affect
 	_dry_scatter = _env.fog_sun_scatter
+	_dry_volume = _env.volumetric_fog_density
+	_dry_volume_albedo = _env.volumetric_fog_albedo
 
 
 func _process(delta: float) -> void:
@@ -72,6 +80,8 @@ func _process(delta: float) -> void:
 	_env.fog_density = lerpf(_dry_density, fog_density, _amount)
 	_env.fog_sky_affect = lerpf(_dry_sky, 1.0, _amount)
 	_env.fog_sun_scatter = lerpf(_dry_scatter, 0.05, _amount)
+	_env.volumetric_fog_density = lerpf(_dry_volume, volume_density, _amount)
+	_env.volumetric_fog_albedo = _dry_volume_albedo.lerp(volume_albedo, _amount)
 
 
 func _level_at(x: float, z: float) -> float:
