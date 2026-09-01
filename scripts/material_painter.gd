@@ -64,10 +64,10 @@ func _walk(node: Node) -> void:
 		_walk(child)
 
 
-func _matches(name: String) -> bool:
+func _matches(node_name: String) -> bool:
 	var hit := false
 	for prefix in mesh_names:
-		if name.begins_with(prefix):
+		if node_name.begins_with(prefix):
 			hit = true
 			break
 	return hit != invert

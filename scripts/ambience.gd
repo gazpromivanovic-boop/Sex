@@ -54,11 +54,11 @@ func _ready() -> void:
 
 
 ## Непрерывный слой: играет всегда и отовсюду.
-func _start_bed(stream: AudioStream, volume: float, name: String) -> void:
+func _start_bed(stream: AudioStream, volume: float, layer: String) -> void:
 	if stream == null:
 		return
 	var player := AudioStreamPlayer.new()
-	player.name = name
+	player.name = layer
 	player.stream = _looped(stream)
 	player.volume_db = volume
 	player.autoplay = true
@@ -74,7 +74,10 @@ func _looped(stream: AudioStream) -> AudioStream:
 		var wav := copy as AudioStreamWAV
 		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		wav.loop_begin = 0
-		wav.loop_end = wav.data.size() / 4      # 16 бит стерео: 4 байта на кадр
+		# 16 бит стерео: 4 байта на кадр. Деление целочисленное намеренно —
+		# loop_end меряется в кадрах, дробных кадров не бывает.
+		@warning_ignore("integer_division")
+		wav.loop_end = wav.data.size() / 4
 	elif copy is AudioStreamOggVorbis:
 		(copy as AudioStreamOggVorbis).loop = true
 	elif copy is AudioStreamMP3:

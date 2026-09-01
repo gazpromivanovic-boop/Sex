@@ -382,7 +382,7 @@ func _fit_jump_anims() -> void:
 
 func _fit_jump_clip(node_name: String, scale_path: String, clip: String,
 		takeoff: float, land: float, fallback: float) -> void:
-	var scale := fallback
+	var speed := fallback
 	var air := air_time()
 	if fit_jump_anim and anim_player != null and anim_player.has_animation(clip) and air > 0.01:
 		var node: AnimationNodeAnimation = _blend_tree_node(node_name) as AnimationNodeAnimation
@@ -390,12 +390,12 @@ func _fit_jump_clip(node_name: String, scale_path: String, clip: String,
 			# начинаем клип сразу с отрыва: физика подбрасывает тело мгновенно,
 			# приседать в воздухе персонажу уже поздно
 			node.start_offset = takeoff
-			scale = (land - takeoff) / air
+			speed = (land - takeoff) / air
 		else:
 			# обрезка недоступна — подгоняем так, чтобы совпало хотя бы касание
-			scale = land / air
-		scale = clampf(scale, 0.4, jump_anim_max_speed)
-	anim_tree.set(scale_path, scale)
+			speed = land / air
+		speed = clampf(speed, 0.4, jump_anim_max_speed)
+	anim_tree.set(scale_path, speed)
 
 
 func _blend_tree_node(node_name: String) -> AnimationNode:

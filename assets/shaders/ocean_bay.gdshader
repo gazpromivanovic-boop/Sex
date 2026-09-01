@@ -88,6 +88,15 @@ uniform sampler2D normal_map : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform float normal_tiling : hint_range(0.0, 0.15) = 0.06;
 uniform float normal_strength : hint_range(0.0, 2.0) = 0.45;
 uniform float ripple_speed : hint_range(0.0, 0.2) = 0.05;
+// Насколько гребни светлее впадин. Без этого форма волны не читается вовсе:
+// цвет воды несёт EMISSION, диффузного затенения от солнца у неё нет, и как её
+// ни колыхай, поверхность выглядит ровным листом.
+uniform float wave_contrast : hint_range(0.0, 1.0) = 0.35;
+// Опорная амплитуда для нормировки, метры: суммарная амплитуда профиля волн.
+uniform float wave_amplitude : hint_range(0.05, 3.0) = 0.31;
+// Сколько мелкой ряби подмешать в нормаль для бликов. Ноль — блик идёт ровно по
+// форме волны и собирается в солнечную дорожку, единица — дробится в искры.
+uniform float glint_ripple : hint_range(0.0, 1.0) = 0.45;
 group_uniforms;
 
 group_uniforms Underwater;  // Под водой
@@ -270,6 +279,13 @@ void fragment() {
 		max(0.1, fresnel_power));
 
 	// ---- Изнанка: смотрим на поверхность снизу ------------------------------
+	// Обе стороны поверхности считаются в одной функции и пишут в общие
+	// переменные: выйти из fragment() досрочно нельзя — return в этой функции
+	// шейдерный язык Godot не принимает.
+	vec3 col = vec3(0.0);
+	float alpha = 0.0;
+	vec3 out_normal = blend_n;
+
 	if (!FRONT_FACING) {
 		// Окно Снелла: у горизонта изнанка почти зеркало, к зениту сквозь неё
 		// видно мир над водой. Без этого под водой сверху чёрная крышка.
@@ -278,135 +294,137 @@ void fragment() {
 		vec2 ref_uv = clamp(scr_uv + blend_n.xz * refraction_strength * 3.0,
 			vec2(0.001), vec2(0.999));
 		vec3 through = texture(screen_texture, ref_uv).rgb;
-		vec3 col_under = mix(underwater_color.rgb, through, window * 0.85);
-		ALBEDO = vec3(0.0);
-		EMISSION = col_under;
-		ALPHA = mix(underwater_color.a, 0.35, window);
-		NORMAL = normalize((VIEW_MATRIX * vec4(-blend_n, 0.0)).xyz);
-		ROUGHNESS = roughness_value;
-		SPECULAR = specular_value;
-		return;
-	}
+		col = mix(underwater_color.rgb, through, window * 0.85);
+		alpha = mix(underwater_color.a, 0.35, window);
+		out_normal = -blend_n;
+	} else {
 
-	// ---- Глубина по буферу глубины ------------------------------------------
-	float raw_depth = texture(depth_texture, scr_uv).r;
-	// Обратная Z: ноль — дальняя плоскость, то есть за водой ничего нет (небо
-	// у горизонта). Восстанавливать по такому значению нельзя — точка уезжает
-	// на дальнюю плоскость, и её высота случайна: у горизонта вода то
-	// выкусывалась дырами, то белела пеной. Считаем такую воду просто глубокой.
-	bool has_scene = raw_depth > 0.0;
-	vec3 scene_ws = reconstruct_world_pos(scr_uv, raw_depth,
-		INV_PROJECTION_MATRIX, INV_VIEW_MATRIX);
+		// ---- Глубина по буферу глубины ------------------------------------------
+		float raw_depth = texture(depth_texture, scr_uv).r;
+		// Обратная Z: ноль — дальняя плоскость, то есть за водой ничего нет (небо
+		// у горизонта). Восстанавливать по такому значению нельзя — точка уезжает
+		// на дальнюю плоскость, и её высота случайна: у горизонта вода то
+		// выкусывалась дырами, то белела пеной. Считаем такую воду просто глубокой.
+		bool has_scene = raw_depth > 0.0;
+		vec3 scene_ws = reconstruct_world_pos(scr_uv, raw_depth,
+			INV_PROJECTION_MATRIX, INV_VIEW_MATRIX);
 
-	float shore_jitter = (vnoise(pos_ws.xz * 1.8 + TIME * foam_speed * 0.2) - 0.5)
-		* shore_edge_break;
-	if (has_scene && scene_ws.y > pos_ws.y + 0.05 + shore_jitter) {
-		discard;                    // берег выше воды: тут воды нет
-	}
-	float depth_diff = has_scene ? max(0.0, pos_ws.y - scene_ws.y) : water_depth;
-	float depth_t = clamp(depth_diff / max(0.001, water_depth), 0.0, 1.0);
-
-	// ---- Цвет: полосы по глубине и свечение у самого берега ------------------
-	float bands = max(1.0, float(color_bands));
-	vec3 col = mix(shallow_color.rgb, deep_color.rgb, floor(depth_t * bands) / bands);
-	float shore_t = clamp(depth_diff / max(0.001, shore_glow_width * water_depth),
-		0.0, 1.0);
-	col = mix(shore_glow_color.rgb, col, shore_t);
-
-	// ---- Преломление: на отмели сквозь воду видно дно ------------------------
-	vec2 ref_nm_uv = pos_ws.xz * 0.45 + nt * vec2(0.06, 0.04);
-	vec3 ref_tn = texture(normal_map, ref_nm_uv).rgb * 2.0 - 1.0;
-	vec2 ref_uv = clamp(scr_uv + ref_tn.xy * refraction_strength * 4.0
-		* (1.0 - depth_t * 0.3), vec2(0.001), vec2(0.999));
-	col = mix(texture(screen_texture, ref_uv).rgb, col,
-		clamp(depth_t * 0.9 - 0.1, 0.0, 1.0));
-
-	// ---- Каустики на дне ----------------------------------------------------
-	// Считаются в координатах дна, а не поверхности: жилы ползут по рельефу,
-	// как настоящий преломлённый свет, а не скользят поверх него.
-	if (has_scene && caustics_strength > 0.0) {
-		float zone = clamp(1.0 - smoothstep(0.30, 1.00, depth_t), 0.0, 1.0);
-		vec2 c_p = scene_ws.xz * mix(0.5, 2.5, caustics_scale);
-		float ct = TIME * caustics_speed;
-		float c = max(caustic(c_p, ct * 0.55), caustic(c_p * 1.43 + 2.7, ct * 0.43));
-		c = floor(c * bands) / bands;
-		float mask = smoothstep(0.35, 0.65, vnoise(scene_ws.xz * 0.30 + ct * 0.18));
-		vec3 tint = clamp(mix(shallow_color.rgb, shore_glow_color.rgb, 0.7) * 1.55,
-			0.0, 1.0);
-		vec3 effect = clamp(tint * c * zone * mask * caustics_strength, 0.0, 1.0);
-		// Экранное смешение: свет проходит сквозь цвет воды, а не красит поверх.
-		col = 1.0 - (1.0 - col) * (1.0 - effect);
-	}
-
-	col = mix(col, shore_glow_color.rgb, fresnel * 0.55);
-	float alpha = clamp(mix(shallow_color.a, deep_color.a, depth_t) + fresnel * 0.3,
-		0.0, 1.0);
-
-	// ---- Пена вдоль линии прибоя --------------------------------------------
-	float ft = TIME * foam_speed;
-	// Четыре диагональных отсчёта глубины вокруг пикселя: наименьший — самый
-	// мелкий, значит берег рядом. Меряем по мировой высоте, а не по глубине от
-	// камеры, иначе пена ездит при повороте камеры.
-	vec2 ts = 8.0 / VIEWPORT_SIZE;
-	float proj_diff = 1e6;
-	for (int i = 0; i < 4; i++) {
-		vec2 off = vec2(i == 0 || i == 2 ? 1.0 : -1.0, i < 2 ? 1.0 : -1.0);
-		vec2 fu = scr_uv + ts * off;
-		float fd_raw = texture(depth_texture, fu).r;
-		if (fd_raw <= 0.0) {
-			continue;               // за водой небо: берега тут нет
+		float shore_jitter = (vnoise(pos_ws.xz * 1.8 + TIME * foam_speed * 0.2) - 0.5)
+			* shore_edge_break;
+		if (has_scene && scene_ws.y > pos_ws.y + 0.05 + shore_jitter) {
+			discard;                    // берег выше воды: тут воды нет
 		}
-		vec3 fw = reconstruct_world_pos(fu, fd_raw, INV_PROJECTION_MATRIX,
-			INV_VIEW_MATRIX);
-		proj_diff = min(proj_diff, fw.y > pos_ws.y ? 1e6 : pos_ws.y - fw.y);
-	}
-	float proj_dist = clamp(proj_diff / max(0.001, foam_depth), 0.0, 1.0);
+		float depth_diff = has_scene ? max(0.0, pos_ws.y - scene_ws.y) : water_depth;
+		float depth_t = clamp(depth_diff / max(0.001, water_depth), 0.0, 1.0);
 
-	vec2 foam_uv = distort_uv(pos_ws.xz * mix(0.05, 2.0, foam_tiling), 0.3, ft);
-	float foam_samp = foam_pattern(foam_uv, ft);
-	// Шум разбивки — на фиксированной частоте, намеренно не связанной с
-	// tiling: рисунок пены шириной в метры, и камень полутора метров целиком
-	// попал бы в одну ячейку, получив ровную ленту пены по кругу.
-	float bt = ft * 0.6;
-	float break_n = vnoise(pos_ws.xz * 1.9 + vec2(bt * 0.5, bt * 0.3)) * 0.62
-		+ vnoise(pos_ws.xz * 4.6 - vec2(bt * 0.4, bt * 0.6) + 5.3) * 0.38;
-	float pd = clamp(proj_dist + (break_n - 0.5) * foam_edge_break * 0.95, 0.0, 1.0);
-	float foam_break = smoothstep(0.35, 0.65, break_n);
-	float fw_aa = fwidth(pd) + 0.01;
-	float pd_px = fwidth(pd) * 0.5;
-	float inner = 1.0 - foam_threshold(pd, foam_cutoff * 0.30
-		* mix(1.0, 0.35 + foam_break * 1.30, foam_edge_break), fw_aa, pd_px);
-	float outer_shape = mix(foam_samp, min(foam_samp, foam_break), foam_edge_break);
-	float outer = (1.0 - foam_threshold(pd, foam_cutoff * (0.35 + outer_shape * 1.30),
-			fw_aa, pd_px))
-		* foam_threshold(outer_shape, 0.425, 0.125, fwidth(outer_shape) * 0.5);
-	float foam_mask = max(inner, outer);
-	col = mix(col, foam_color.rgb, foam_mask * foam_color.a);
-	alpha = max(alpha, foam_mask * foam_color.a);
+		// ---- Цвет: полосы по глубине и свечение у самого берега ------------------
+		float bands = max(1.0, float(color_bands));
+		col = mix(shallow_color.rgb, deep_color.rgb, floor(depth_t * bands) / bands);
+		float shore_t = clamp(depth_diff / max(0.001, shore_glow_width * water_depth),
+			0.0, 1.0);
+		col = mix(shore_glow_color.rgb, col, shore_t);
+		// Гребень светлее, впадина темнее: единственное, что здесь показывает форму
+		// волны, кроме блика.
+		col *= 1.0 + clamp(dc.y / max(0.01, wave_amplitude), -1.0, 1.0) * wave_contrast;
 
-	// ---- Блики ---------------------------------------------------------------
-	if (sparkle_boost > 0.0) {
-		float glint = sparkle_points(pos_ws.xz * mix(1.2, 5.5, sparkle_density),
-			TIME * (0.4 + ripple_speed * 6.0),
-			mix(0.04, 0.45, sparkle_density), sparkle_size);
-		glint *= 1.0 - foam_mask;   // пена и так белая
-		col = mix(col, specular_color.rgb, glint * sparkle_boost);
-		alpha = max(alpha, glint * sparkle_boost * 0.85);
-	}
+		// ---- Преломление: на отмели сквозь воду видно дно ------------------------
+		vec2 ref_nm_uv = pos_ws.xz * 0.45 + nt * vec2(0.06, 0.04);
+		vec3 ref_tn = texture(normal_map, ref_nm_uv).rgb * 2.0 - 1.0;
+		vec2 ref_uv = clamp(scr_uv + ref_tn.xy * refraction_strength * 4.0
+			* (1.0 - depth_t * 0.3), vec2(0.001), vec2(0.999));
+		// Дно видно только у самого уреза. При прежнем пороге пол-отмели показывало
+		// песок сквозь воду, и море читалось мокрым пляжем, а не морем.
+		col = mix(texture(screen_texture, ref_uv).rgb, col,
+			clamp(depth_t * 1.8, 0.0, 1.0));
 
-	// Цвет воды собран здесь целиком и несётся свечением, альбедо остаётся
+		// ---- Каустики на дне ----------------------------------------------------
+		// Считаются в координатах дна, а не поверхности: жилы ползут по рельефу,
+		// как настоящий преломлённый свет, а не скользят поверх него.
+		if (has_scene && caustics_strength > 0.0) {
+			float zone = clamp(1.0 - smoothstep(0.30, 1.00, depth_t), 0.0, 1.0);
+			vec2 c_p = scene_ws.xz * mix(0.5, 2.5, caustics_scale);
+			float ct = TIME * caustics_speed;
+			float c = max(caustic(c_p, ct * 0.55), caustic(c_p * 1.43 + 2.7, ct * 0.43));
+			c = floor(c * bands) / bands;
+			float mask = smoothstep(0.35, 0.65, vnoise(scene_ws.xz * 0.30 + ct * 0.18));
+			vec3 tint = clamp(mix(shallow_color.rgb, shore_glow_color.rgb, 0.7) * 1.55,
+				0.0, 1.0);
+			vec3 effect = clamp(tint * c * zone * mask * caustics_strength, 0.0, 1.0);
+			// Экранное смешение: свет проходит сквозь цвет воды, а не красит поверх.
+			col = 1.0 - (1.0 - col) * (1.0 - effect);
+		}
+
+		col = mix(col, shore_glow_color.rgb, fresnel * 0.55);
+		alpha = clamp(mix(shallow_color.a, deep_color.a, depth_t) + fresnel * 0.3,
+			0.0, 1.0);
+
+		// ---- Пена вдоль линии прибоя --------------------------------------------
+		float ft = TIME * foam_speed;
+		// Четыре диагональных отсчёта глубины вокруг пикселя: наименьший — самый
+		// мелкий, значит берег рядом. Меряем по мировой высоте, а не по глубине от
+		// камеры, иначе пена ездит при повороте камеры.
+		vec2 ts = 8.0 / VIEWPORT_SIZE;
+		float proj_diff = 1e6;
+		for (int i = 0; i < 4; i++) {
+			vec2 off = vec2(i == 0 || i == 2 ? 1.0 : -1.0, i < 2 ? 1.0 : -1.0);
+			vec2 fu = scr_uv + ts * off;
+			float fd_raw = texture(depth_texture, fu).r;
+			if (fd_raw <= 0.0) {
+				continue;               // за водой небо: берега тут нет
+			}
+			vec3 fw = reconstruct_world_pos(fu, fd_raw, INV_PROJECTION_MATRIX,
+				INV_VIEW_MATRIX);
+			proj_diff = min(proj_diff, fw.y > pos_ws.y ? 1e6 : pos_ws.y - fw.y);
+		}
+		float proj_dist = clamp(proj_diff / max(0.001, foam_depth), 0.0, 1.0);
+
+		vec2 foam_uv = distort_uv(pos_ws.xz * mix(0.05, 2.0, foam_tiling), 0.3, ft);
+		float foam_samp = foam_pattern(foam_uv, ft);
+		// Шум разбивки — на фиксированной частоте, намеренно не связанной с
+		// tiling: рисунок пены шириной в метры, и камень полутора метров целиком
+		// попал бы в одну ячейку, получив ровную ленту пены по кругу.
+		float bt = ft * 0.6;
+		float break_n = vnoise(pos_ws.xz * 1.9 + vec2(bt * 0.5, bt * 0.3)) * 0.62
+			+ vnoise(pos_ws.xz * 4.6 - vec2(bt * 0.4, bt * 0.6) + 5.3) * 0.38;
+		float pd = clamp(proj_dist + (break_n - 0.5) * foam_edge_break * 0.95, 0.0, 1.0);
+		float foam_break = smoothstep(0.35, 0.65, break_n);
+		float fw_aa = fwidth(pd) + 0.01;
+		float pd_px = fwidth(pd) * 0.5;
+		float inner = 1.0 - foam_threshold(pd, foam_cutoff * 0.30
+			* mix(1.0, 0.35 + foam_break * 1.30, foam_edge_break), fw_aa, pd_px);
+		float outer_shape = mix(foam_samp, min(foam_samp, foam_break), foam_edge_break);
+		float outer = (1.0 - foam_threshold(pd, foam_cutoff * (0.35 + outer_shape * 1.30),
+				fw_aa, pd_px))
+			* foam_threshold(outer_shape, 0.425, 0.125, fwidth(outer_shape) * 0.5);
+		float foam_mask = max(inner, outer);
+		col = mix(col, foam_color.rgb, foam_mask * foam_color.a);
+		alpha = max(alpha, foam_mask * foam_color.a);
+
+		// ---- Блики ---------------------------------------------------------------
+		if (sparkle_boost > 0.0) {
+			float glint = sparkle_points(pos_ws.xz * mix(1.2, 5.5, sparkle_density),
+				TIME * (0.4 + ripple_speed * 6.0),
+				mix(0.04, 0.45, sparkle_density), sparkle_size);
+			glint *= 1.0 - foam_mask;   // пена и так белая
+			col = mix(col, specular_color.rgb, glint * sparkle_boost);
+			alpha = max(alpha, glint * sparkle_boost * 0.85);
+		}
+
+		// Нормаль для бликов: форма волны плюс мелкая рябь. Только рябь давала искры
+		// без солнечной дорожки — дорожка получается как раз из наклона самих волн.
+		vec3 st_a = texture(normal_map, nm_base * 9.0 + nt * vec2(0.11, 0.07)).rgb * 2.0 - 1.0;
+		vec3 st_b = texture(normal_map, nm_base * 6.3 + nt * vec2(-0.06, 0.12)).rgb * 2.0 - 1.0;
+		vec3 st = normalize(st_a + st_b);
+		out_normal = normalize(mix(wave_n, normalize(vec3(st.x, st.z, st.y)), glint_ripple));	}
+
+	// Цвет воды собран целиком выше и несётся свечением, альбедо остаётся
 	// чёрным: иначе окружающий свет подкрасит поверхность второй раз.
 	ALBEDO = vec3(0.0);
 	EMISSION = col;
 	ALPHA = alpha;
 	ROUGHNESS = roughness_value;
 	SPECULAR = specular_value;
-	// Для бликов в light() нужна частая нормаль: на редкой вся поверхность
-	// смотрит почти одинаково, и солнце разливается одним пятном вместо чипов.
-	vec3 st_a = texture(normal_map, nm_base * 9.0 + nt * vec2(0.11, 0.07)).rgb * 2.0 - 1.0;
-	vec3 st_b = texture(normal_map, nm_base * 6.3 + nt * vec2(-0.06, 0.12)).rgb * 2.0 - 1.0;
-	vec3 st = normalize(st_a + st_b);
-	NORMAL = normalize((VIEW_MATRIX * vec4(normalize(vec3(st.x, st.z, st.y)), 0.0)).xyz);
+	NORMAL = normalize((VIEW_MATRIX * vec4(out_normal, 0.0)).xyz);
 }
 
 

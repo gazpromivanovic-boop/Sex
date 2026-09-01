@@ -59,9 +59,9 @@ static func add_clip(target: AnimationPlayer, skeleton: Skeleton3D,
 		probe.queue_free()
 		return false
 
-	var scale := _rig_scale(source_skeleton, skeleton)
+	var rig_scale := _rig_scale(source_skeleton, skeleton)
 	var bone_path := _bone_track_prefix(target)
-	var clip := _retarget(source, source_skeleton, skeleton, bone_path, scale)
+	var clip := _retarget(source, source_skeleton, skeleton, bone_path, rig_scale)
 	probe.queue_free()
 
 	if clip.get_track_count() == 0:
@@ -116,7 +116,7 @@ static func _bone_track_prefix(target: AnimationPlayer) -> String:
 ## относительно своего покоя в исходнике, пересчитываем в наш масштаб и
 ## прикладываем к нашему покою.
 static func _retarget(source: Animation, from_skeleton: Skeleton3D, skeleton: Skeleton3D,
-		bone_path: String, scale: float) -> Animation:
+		bone_path: String, rig_scale: float) -> Animation:
 	var clip: Animation = source.duplicate(true)
 	for i in range(clip.get_track_count() - 1, -1, -1):
 		var kind := clip.track_get_type(i)
@@ -167,7 +167,7 @@ static func _retarget(source: Animation, from_skeleton: Skeleton3D, skeleton: Sk
 				there = from_skeleton.get_bone_rest(source_bone).origin
 			for k in clip.track_get_key_count(i):
 				var v: Vector3 = clip.track_get_key_value(i, k)
-				clip.track_set_key_value(i, k, here + (fix * (v - there)) * scale)
+				clip.track_set_key_value(i, k, here + (fix * (v - there)) * rig_scale)
 	return clip
 
 
@@ -181,8 +181,8 @@ static func _rest_fix(from_skeleton: Skeleton3D, source_bone: int,
 	return qt * qs.inverse()
 
 
-static func _clean_bone(name: String) -> String:
+static func _clean_bone(bone: String) -> String:
 	for prefix in BONE_PREFIXES:
-		if name.begins_with(prefix):
-			return name.substr(prefix.length())
-	return name
+		if bone.begins_with(prefix):
+			return bone.substr(prefix.length())
+	return bone
