@@ -17,9 +17,12 @@ extends Node
 
 ## Шейдер воды. Тот же, что подставляет OceanSkin.
 @export var shader: Shader
-## Профиль волн. Читаем прямо из ресурса: for_shader() лежит на нём, и
-## автозагрузка для этого не нужна.
-@export var wave_profile: Resource
+## Профиль волн.
+@export var wave_profile: Resource:
+	set(value):
+		wave_profile = value
+		if is_inside_tree():
+			_rebuild()
 ## Откуда взять цвета. Пусто — ищем соседний OceanSkin, чтобы не заводить второй
 ## набор тех же настроек и не разъезжаться с игрой.
 @export_node_path("Node") var skin_path: NodePath
@@ -39,12 +42,19 @@ const _SKIN_PARAMS := [
 	"caustics_strength", "sparkle_boost",
 ]
 
+# Размер массива waves[] в шейдере. Ocean3D держит ту же четвёрку константой
+# MAX_WAVES, но дотянуться до неё нельзя: класс профиля в редакторе — заглушка.
+const _MAX_WAVES := 4
+
 var _mesh: MeshInstance3D
 var _material: ShaderMaterial
+var _waves: PackedVector3Array = PackedVector3Array()
 var _time: float = 0.0
 
 
 func _ready() -> void:
+	# В игре узел не делает ничего: там воду строит настоящий OceanSurface.
+	set_process(Engine.is_editor_hint())
 	_rebuild()
 
 
@@ -70,6 +80,9 @@ func _rebuild() -> void:
 	_material.set_shader_parameter("disp_fade_start", size)
 	_material.set_shader_parameter("disp_fade_end", size * 2.0)
 	_material.set_shader_parameter("hole_radius", 0.0)
+	_material.set_shader_parameter("storm_scale", 1.0)
+	_waves = _wave_table()
+	_material.set_shader_parameter("waves", _waves)
 	_apply_skin()
 
 	_mesh = MeshInstance3D.new()
@@ -106,12 +119,32 @@ func _apply_skin() -> void:
 			_material.set_shader_parameter(param, value)
 
 
+## Таблица волн для шейдера.
+##
+## Собираем сами, хотя у профиля есть готовый for_shader(). Позвать его нельзя:
+## OceanWaveProfile — не @tool, и в редакторе ресурс живёт заглушкой, у которой
+## читаются свойства, но не работают методы. Вызов давал по ошибке на кадр —
+## почти восемнадцать тысяч за несколько минут.
+##
+## Правило дополнения то же, что в оригинале: массив всегда ровно из четырёх
+## записей, недостающие — с нулевой крутизной и длиной волны 1, чтобы k в
+## шейдере остался конечным.
+func _wave_table() -> PackedVector3Array:
+	var table := PackedVector3Array()
+	if wave_profile != null:
+		var waves = wave_profile.get("waves")
+		if waves != null:
+			for i in mini(waves.size(), _MAX_WAVES):
+				table.append(waves[i])
+	while table.size() < _MAX_WAVES:
+		table.append(Vector3(0.0, 0.0, 1.0))
+	return table
+
+
 func _process(delta: float) -> void:
-	if _material == null or wave_profile == null:
+	if _material == null:
 		return
 	# Время своё: автозагрузки Ocean в редакторе нет. Волны — чистая функция
 	# места и времени, поэтому расхождение с игрой ни на что не влияет.
 	_time += delta
-	_material.set_shader_parameter("waves", wave_profile.call("for_shader"))
 	_material.set_shader_parameter("t", _time)
-	_material.set_shader_parameter("storm_scale", 1.0)
