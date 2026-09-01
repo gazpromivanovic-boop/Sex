@@ -15,33 +15,33 @@
 [ext_resource type="Script" uid="uid://vs8dr2i2g6iq" path="res://scripts/ambience.gd" id="14_amb"]
 [ext_resource type="AudioStream" uid="uid://yk5yculywkgo" path="res://assets/audio/surf_loop.wav" id="15_surf"]
 [ext_resource type="AudioStream" uid="uid://dg2qs4yd5povt" path="res://assets/audio/wind_loop.wav" id="16_wind"]
-[ext_resource type="Script" path="res://scripts/scatter.gd" id="20_scatter"]
-[ext_resource type="Script" path="res://scripts/row.gd" id="30_row"]
-[ext_resource type="Script" path="res://scripts/ground_snap.gd" id="36_snap"]
-[ext_resource type="PackedScene" path="res://assets/models/rock_a.glb" id="21_ra"]
-[ext_resource type="PackedScene" path="res://assets/models/rock_b.glb" id="22_rb"]
-[ext_resource type="PackedScene" path="res://assets/models/rock_c.glb" id="23_rc"]
-[ext_resource type="PackedScene" path="res://assets/models/rock_d.glb" id="24_rd"]
-[ext_resource type="PackedScene" path="res://assets/models/log.glb" id="25_log"]
-[ext_resource type="PackedScene" path="res://assets/models/log_b.glb" id="33_logb"]
-[ext_resource type="PackedScene" path="res://assets/models/grass_patch.glb" id="26_gp"]
-[ext_resource type="PackedScene" path="res://assets/models/grass_dry.glb" id="27_gd"]
-[ext_resource type="PackedScene" path="res://assets/models/lamp.glb" id="28_lamp"]
-[ext_resource type="PackedScene" path="res://assets/models/tile.glb" id="29_tile"]
-[ext_resource type="PackedScene" path="res://assets/models/cover_chair.glb" id="35_cchair"]
-[ext_resource type="AudioStream" path="res://assets/audio/sea_gulls.mp3" id="34_sea"]
-[ext_resource type="Script" path="res://addons/ocean3d_lite/ocean_surface.gd" id="37_ocean"]
+[ext_resource type="Script" uid="uid://dpeg0vqosvxut" path="res://scripts/scatter.gd" id="20_scatter"]
+[ext_resource type="PackedScene" uid="uid://c15fvl1rbuvlk" path="res://assets/models/rock_a.glb" id="21_ra"]
+[ext_resource type="PackedScene" uid="uid://davyxx82g2f0u" path="res://assets/models/rock_b.glb" id="22_rb"]
+[ext_resource type="PackedScene" uid="uid://qa28x68ahbv" path="res://assets/models/rock_c.glb" id="23_rc"]
+[ext_resource type="PackedScene" uid="uid://cxyle23e8cc6v" path="res://assets/models/rock_d.glb" id="24_rd"]
+[ext_resource type="PackedScene" uid="uid://dhygvto1qyqca" path="res://assets/models/log.glb" id="25_log"]
+[ext_resource type="PackedScene" uid="uid://b0n6b0707j2xi" path="res://assets/models/grass_patch.glb" id="26_gp"]
+[ext_resource type="PackedScene" uid="uid://cq1qug87gnhyv" path="res://assets/models/grass_dry.glb" id="27_gd"]
+[ext_resource type="PackedScene" uid="uid://bl5rvvbcavpq8" path="res://assets/models/lamp.glb" id="28_lamp"]
+[ext_resource type="PackedScene" uid="uid://ctiareu2h1ntw" path="res://assets/models/tile.glb" id="29_tile"]
+[ext_resource type="Script" uid="uid://ccor54t4w1cmm" path="res://scripts/row.gd" id="30_row"]
+[ext_resource type="PackedScene" uid="uid://q5qeijid3nf5" path="res://assets/models/log_b.glb" id="33_logb"]
+[ext_resource type="AudioStream" uid="uid://bojpd2lm817qs" path="res://assets/audio/sea_gulls.mp3" id="34_sea"]
+[ext_resource type="PackedScene" uid="uid://2cr1uov7d3w7" path="res://assets/models/cover_chair.glb" id="35_cchair"]
+[ext_resource type="Script" uid="uid://lvnlh60xdq54" path="res://scripts/ground_snap.gd" id="36_snap"]
+[ext_resource type="Script" uid="uid://bvr2s517whlon" path="res://addons/ocean3d_lite/ocean_surface.gd" id="37_ocean"]
 [ext_resource type="Resource" path="res://assets/water/bay_waves.tres" id="38_waves"]
-[ext_resource type="Compositor" path="res://scenes/grade.tres" id="39_grade"]
-[ext_resource type="Script" path="res://scripts/ocean_skin.gd" id="40_skin"]
-[ext_resource type="Shader" path="res://assets/shaders/ocean_bay.gdshader" id="41_wshader"]
-[ext_resource type="Texture2D" path="res://assets/water/EA_Water_Normal.tres" id="42_wnormal"]
-[ext_resource type="Script" path="res://scripts/haze.gd" id="43_mist"]
-[ext_resource type="Script" path="res://scripts/underwater.gd" id="44_under"]
-[ext_resource type="Script" path="res://scripts/swimmer.gd" id="45_swim"]
-[ext_resource type="PackedScene" path="res://assets/models/turtle.glb" id="46_turtle"]
-[ext_resource type="PackedScene" path="res://assets/models/manta.glb" id="47_manta"]
-[ext_resource type="Script" path="res://scripts/ocean_preview.gd" id="48_preview"]
+[ext_resource type="Compositor" uid="uid://cwyvistygabro" path="res://scenes/grade.tres" id="39_grade"]
+[ext_resource type="Script" uid="uid://2n4ji13k82ln" path="res://scripts/ocean_skin.gd" id="40_skin"]
+[ext_resource type="Shader" uid="uid://dkcjhxejxf2d7" path="res://assets/shaders/ocean_bay.gdshader" id="41_wshader"]
+[ext_resource type="Texture2D" uid="uid://sarajcytxpgx" path="res://assets/water/EA_Water_Normal.tres" id="42_wnormal"]
+[ext_resource type="Script" uid="uid://c0lt1crpfxap6" path="res://scripts/haze.gd" id="43_mist"]
+[ext_resource type="Script" uid="uid://c38co5m5silk2" path="res://scripts/underwater.gd" id="44_under"]
+[ext_resource type="Script" uid="uid://cx68yg7akpq3c" path="res://scripts/swimmer.gd" id="45_swim"]
+[ext_resource type="PackedScene" uid="uid://biwki011x1grr" path="res://assets/models/turtle.glb" id="46_turtle"]
+[ext_resource type="PackedScene" uid="uid://d2c4cnyr6x6bn" path="res://assets/models/manta.glb" id="47_manta"]
+[ext_resource type="Script" uid="uid://djcwjht6hibw3" path="res://scripts/ocean_preview.gd" id="48_preview"]
 
 [sub_resource type="ShaderMaterial" id="SandMat"]
 render_priority = 0
@@ -66,60 +66,6 @@ shader_parameter/grain_scale = 42.0
 
 [sub_resource type="BoxShape3D" id="ArchBlock"]
 size = Vector3(9, 14, 2)
-
-[sub_resource type="Gradient" id="Gradient_tuh25"]
-offsets = PackedFloat32Array(0, 0.25, 0.7, 1)
-colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
-
-[sub_resource type="GradientTexture1D" id="GradientTexture1D_8tmsf"]
-gradient = SubResource("Gradient_tuh25")
-
-[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_gxh4y"]
-emission_shape = 3
-emission_box_extents = Vector3(75, 0.4, 11)
-angle_min = -180.0
-angle_max = 180.0
-direction = Vector3(0, 1, 0)
-spread = 12.0
-initial_velocity_min = 0.07777778
-initial_velocity_max = 0.23333333
-angular_velocity_min = -3.0
-angular_velocity_max = 3.0
-gravity = Vector3(0.35, 0.05, 0.12)
-damping_max = 0.05
-scale_min = 6.0
-scale_max = 15.0
-color = Color(0.88, 0.74, 0.68, 0.09)
-color_ramp = SubResource("GradientTexture1D_8tmsf")
-
-[sub_resource type="Gradient" id="Gradient_30fw8"]
-offsets = PackedFloat32Array(0, 0.45, 1)
-colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.55, 1, 1, 1, 0)
-
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_7rn74"]
-gradient = SubResource("Gradient_30fw8")
-width = 128
-height = 128
-fill = 1
-fill_from = Vector2(0.5, 0.5)
-fill_to = Vector2(1, 0.5)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_30el1"]
-transparency = 1
-depth_draw_mode = 2
-shading_mode = 0
-vertex_color_use_as_albedo = true
-albedo_color = Color(0.88, 0.74, 0.68, 0.09)
-albedo_texture = SubResource("GradientTexture2D_7rn74")
-disable_receive_shadows = true
-billboard_mode = 1
-billboard_keep_scale = true
-distance_fade_mode = 1
-distance_fade_min_distance = 2.0
-distance_fade_max_distance = 0.5
-
-[sub_resource type="QuadMesh" id="QuadMesh_s3vw1"]
-material = SubResource("StandardMaterial3D_30el1")
 
 [node name="Lobby" type="Node3D" unique_id=996390571]
 script = ExtResource("1_main")
@@ -165,12 +111,123 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 6, -63)
 [node name="Shape" type="CollisionShape3D" parent="Level/PassBlocker" unique_id=255091351]
 shape = SubResource("ArchBlock")
 
+[node name="Reef" type="Node3D" parent="Level" unique_id=1261519643]
+script = ExtResource("20_scatter")
+scenes = Array[PackedScene]([ExtResource("21_ra"), ExtResource("22_rb"), ExtResource("23_rc"), ExtResource("24_rd")])
+count = 26
+seed_value = 7710
+collision = false
+area = Vector2(150, 95)
+area_center = Vector3(0, 0, 50)
+min_height = -9.5
+max_height = -1.2
+scale_range = Vector2(0.5, 2.2)
+sink = 0.25
+tilt_deg = 16.0
+
+[node name="Boards" type="Node3D" parent="Level" unique_id=413431206]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.39, -7)
+script = ExtResource("30_row")
+scene = ExtResource("29_tile")
+count = 26
+spacing = 1.07
+collision = false
+base_rotation = Vector3(0, 90, 0)
+
+[node name="LampA" parent="Level" unique_id=989794904 instance=ExtResource("28_lamp")]
+transform = Transform3D(3.1391647e-07, 0, -1, 0, 1, 0, 1, 0, 3.1391647e-07, 2.15, 0.55, 2)
+
+[node name="LampGlowA" type="OmniLight3D" parent="Level/LampA" unique_id=1509392838]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.25, 0)
+light_color = Color(1, 0.83, 0.58, 1)
+light_energy = 3.2
+light_specular = 0.3
+shadow_enabled = true
+omni_range = 13.0
+omni_attenuation = 1.6
+
+[node name="LampB" parent="Level" unique_id=44755007 instance=ExtResource("28_lamp")]
+transform = Transform3D(3.1391647e-07, 0, -1, 0, 1, 0, 1, 0, 3.1391647e-07, 2.15, 0.55, 14)
+
+[node name="LampGlowB" type="OmniLight3D" parent="Level/LampB" unique_id=1761172154]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.25, 0)
+light_color = Color(1, 0.83, 0.58, 1)
+light_energy = 3.2
+light_specular = 0.3
+shadow_enabled = true
+omni_range = 13.0
+omni_attenuation = 1.6
+
+[node name="Rocks" type="Node3D" parent="Level" unique_id=976624335]
+script = ExtResource("20_scatter")
+scenes = Array[PackedScene]([ExtResource("21_ra"), ExtResource("22_rb"), ExtResource("23_rc"), ExtResource("24_rd")])
+count = 14
+seed_value = 4471
+area = Vector2(116, 46)
+area_center = Vector3(0, 0, -24)
+min_height = -0.85
+max_height = 0.95
+scale_range = Vector2(0.35, 1.2)
+sink = 0.32
+
+[node name="Pebbles" type="Node3D" parent="Level" unique_id=1773947597]
+script = ExtResource("20_scatter")
+scenes = Array[PackedScene]([ExtResource("21_ra"), ExtResource("22_rb"), ExtResource("24_rd")])
+seed_value = 6120
+collision = false
+area = Vector2(118, 22)
+area_center = Vector3(0, 0, -8)
+min_height = -1.05
+max_height = 1.15
+scale_range = Vector2(0.05, 0.16)
+sink = 0.04
+
+[node name="Logs" type="Node3D" parent="Level" unique_id=1320716050]
+script = ExtResource("20_scatter")
+scenes = Array[PackedScene]([ExtResource("25_log"), ExtResource("33_logb")])
+count = 5
+seed_value = 8812
+area = Vector2(100, 34)
+area_center = Vector3(0, 0, -26)
+min_height = 0.65
+max_height = 2.15
+scale_range = Vector2(0.7, 1.3)
+tilt_deg = 6.0
+
+[node name="Grass" type="Node3D" parent="Level" unique_id=1125197681]
+script = ExtResource("20_scatter")
+scenes = Array[PackedScene]([ExtResource("26_gp"), ExtResource("27_gd")])
+count = 60
+seed_value = 3305
+collision = false
+area = Vector2(112, 40)
+area_center = Vector3(0, 0, -28)
+min_height = 1.25
+max_height = 9.55
+scale_range = Vector2(0.35, 0.8)
+sink = 0.06
+tilt_deg = 5.0
+
+[node name="CoverChairPier" parent="Level" unique_id=1471584255 instance=ExtResource("35_cchair")]
+transform = Transform3D(0.9915619, 0, 0.12963414, 0, 1, 0, -0.12963414, 0, 0.9915619, -1.5, 0.7, 12.6)
+script = ExtResource("36_snap")
+
+[node name="CoverChairA" parent="Level" unique_id=1404089206 instance=ExtResource("35_cchair")]
+transform = Transform3D(0.90630794, 0, -0.42261797, 0, 1, 0, 0.42261797, 0, 0.90630794, -12.5, 1, -24.5)
+script = ExtResource("36_snap")
+align_to_normal = true
+
+[node name="CoverChairB" parent="Level" unique_id=973111709 instance=ExtResource("35_cchair")]
+transform = Transform3D(0.86602527, 0, 0.50000024, 0, 1, 0, -0.50000024, 0, 0.86602527, -9, 1, -25.8)
+script = ExtResource("36_snap")
+align_to_normal = true
+
 [node name="Ambience" type="Node3D" parent="." unique_id=1203785062]
 script = ExtResource("14_amb")
 surf = ExtResource("15_surf")
 wind = ExtResource("16_wind")
-listener = NodePath("../Player")
 bed = ExtResource("34_sea")
+listener = NodePath("../Player")
 
 [node name="Player" parent="." unique_id=1776984483 instance=ExtResource("2_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, -6.923705)
@@ -213,7 +270,7 @@ offset_bottom = 64.0
 grow_horizontal = 0
 horizontal_alignment = 2
 
-[node name="Ocean" type="Node3D" parent="."]
+[node name="Ocean" type="Node3D" parent="." unique_id=612232170]
 script = ExtResource("37_ocean")
 wave_profile = ExtResource("38_waves")
 tile_size = 260.0
@@ -224,66 +281,38 @@ fair_deep_color = Color(0.02, 0.11, 0.18, 1)
 fair_shallow_color = Color(0.13, 0.42, 0.46, 1)
 fair_roughness = 0.1
 
-[node name="OceanSkin" type="Node" parent="Ocean"]
+[node name="OceanSkin" type="Node" parent="Ocean" unique_id=757512816]
 script = ExtResource("40_skin")
 shader = ExtResource("41_wshader")
 normal_map = ExtResource("42_wnormal")
-shallow_color = Color(0.44, 0.82, 0.86, 0.55)
-deep_color = Color(0.1, 0.3, 0.5, 0.93)
 shore_glow_color = Color(0.94, 0.98, 1, 1)
-foam_color = Color(0.97, 0.99, 1, 1)
-underwater_color = Color(0.05, 0.24, 0.32, 0.72)
-water_depth = 4.0
-color_bands = 4
-foam_cutoff = 0.55
-caustics_strength = 0.22
-sparkle_boost = 0.25
 
-[node name="OceanPreview" type="Node" parent="Ocean"]
+[node name="OceanPreview" type="Node" parent="Ocean" unique_id=508431301]
 script = ExtResource("48_preview")
 shader = ExtResource("41_wshader")
 wave_profile = ExtResource("38_waves")
 skin_path = NodePath("../OceanSkin")
-size = 230.0
-subdiv = 120
 
-[node name="ShoreMist" type="GPUParticles3D" parent="."]
-position = Vector3(0, 0.5, 2)
+[node name="ShoreMist" type="GPUParticles3D" parent="." unique_id=622559982]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 2)
 script = ExtResource("43_mist")
 span = Vector2(150, 22)
 height = 3.5
-count = 44
-life = 18.0
 mist_color = Color(0.88, 0.74, 0.68, 0.09)
 puff_size = Vector2(6, 15)
-drift = Vector3(0.35, 0.05, 0.12)
 
-[node name="Motes" type="GPUParticles3D" parent="."]
-position = Vector3(0, -4.5, 52)
+[node name="Motes" type="GPUParticles3D" parent="." unique_id=1950734125]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -4.5, 52)
 script = ExtResource("43_mist")
 span = Vector2(130, 95)
-height = 7.0
 count = 240
 life = 26.0
+height = 7.0
 mist_color = Color(0.72, 0.88, 0.88, 0.055)
 puff_size = Vector2(0.05, 0.22)
 drift = Vector3(0.05, 0.1, -0.04)
 
-[node name="Reef" type="Node3D" parent="Level"]
-script = ExtResource("20_scatter")
-scenes = Array[PackedScene]([ExtResource("21_ra"), ExtResource("22_rb"), ExtResource("23_rc"), ExtResource("24_rd")])
-count = 26
-seed_value = 7710
-area = Vector2(150, 95)
-area_center = Vector3(0, 0, 50)
-min_height = -9.5
-max_height = -1.2
-scale_range = Vector2(0.5, 2.2)
-sink = 0.25
-tilt_deg = 16.0
-collision = false
-
-[node name="Manta" parent="." instance=ExtResource("47_manta")]
+[node name="Manta" parent="." unique_id=1342956531 instance=ExtResource("47_manta")]
 transform = Transform3D(0.55, 0, 0, 0, 0.55, 0, 0, 0, 0.55, 0, -4.2, 58)
 script = ExtResource("45_swim")
 radius = Vector2(26, 17)
@@ -294,7 +323,7 @@ bob_period = 17.0
 bank_deg = 10.0
 facing_offset_deg = 180.0
 
-[node name="TurtleA" parent="." instance=ExtResource("46_turtle")]
+[node name="TurtleA" parent="." unique_id=2089532230 instance=ExtResource("46_turtle")]
 transform = Transform3D(0.45, 0, 0, 0, 0.45, 0, 0, 0, 0.45, -16, -2.6, 42)
 script = ExtResource("45_swim")
 radius = Vector2(11, 7)
@@ -302,7 +331,7 @@ period = 27.0
 phase = 0.15
 facing_offset_deg = 180.0
 
-[node name="TurtleB" parent="." instance=ExtResource("46_turtle")]
+[node name="TurtleB" parent="." unique_id=1906758398 instance=ExtResource("46_turtle")]
 transform = Transform3D(0.38, 0, 0, 0, 0.38, 0, 0, 0, 0.38, 15, -3.4, 54)
 script = ExtResource("45_swim")
 radius = Vector2(9, 13)
@@ -311,7 +340,7 @@ phase = 0.6
 tilt_deg = 11.0
 facing_offset_deg = 180.0
 
-[node name="TurtleC" parent="." instance=ExtResource("46_turtle")]
+[node name="TurtleC" parent="." unique_id=1644759447 instance=ExtResource("46_turtle")]
 transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, -4, -5.6, 70)
 script = ExtResource("45_swim")
 radius = Vector2(15, 10)
@@ -321,111 +350,6 @@ tilt_deg = 5.0
 bob = 1.2
 facing_offset_deg = 180.0
 
-[node name="Underwater" type="Node" parent="."]
+[node name="Underwater" type="Node" parent="." unique_id=996882348]
 script = ExtResource("44_under")
 world_environment = NodePath("../WorldEnvironment")
-fog_color = Color(0.05, 0.21, 0.27, 1)
-fog_density = 0.11
-
-[node name="Boards" type="Node3D" parent="Level"]
-position = Vector3(0, 0.39, -7)
-script = ExtResource("30_row")
-scene = ExtResource("29_tile")
-count = 26
-spacing = 1.07
-base_rotation = Vector3(0, 90, 0)
-collision = false
-
-[node name="LampA" parent="Level" instance=ExtResource("28_lamp")]
-position = Vector3(2.15, 0.55, 2)
-rotation = Vector3(0, -1.570796, 0)
-
-[node name="LampB" parent="Level" instance=ExtResource("28_lamp")]
-position = Vector3(2.15, 0.55, 14)
-rotation = Vector3(0, -1.570796, 0)
-
-[node name="LampGlowA" type="OmniLight3D" parent="Level/LampA"]
-position = Vector3(0, 4.25, 0)
-light_color = Color(1, 0.83, 0.58, 1)
-light_energy = 3.2
-light_specular = 0.3
-shadow_enabled = true
-omni_range = 13.0
-omni_attenuation = 1.6
-
-[node name="LampGlowB" type="OmniLight3D" parent="Level/LampB"]
-position = Vector3(0, 4.25, 0)
-light_color = Color(1, 0.83, 0.58, 1)
-light_energy = 3.2
-light_specular = 0.3
-shadow_enabled = true
-omni_range = 13.0
-omni_attenuation = 1.6
-
-[node name="Rocks" type="Node3D" parent="Level"]
-script = ExtResource("20_scatter")
-scenes = Array[PackedScene]([ExtResource("21_ra"), ExtResource("22_rb"), ExtResource("23_rc"), ExtResource("24_rd")])
-count = 14
-seed_value = 4471
-area = Vector2(116, 46)
-area_center = Vector3(0, 0, -24)
-min_height = -0.85
-max_height = 0.95
-scale_range = Vector2(0.35, 1.2)
-sink = 0.32
-
-[node name="Pebbles" type="Node3D" parent="Level"]
-script = ExtResource("20_scatter")
-scenes = Array[PackedScene]([ExtResource("21_ra"), ExtResource("22_rb"), ExtResource("24_rd")])
-count = 40
-seed_value = 6120
-area = Vector2(118, 22)
-area_center = Vector3(0, 0, -8)
-min_height = -1.05
-max_height = 1.15
-scale_range = Vector2(0.05, 0.16)
-sink = 0.04
-collision = false
-
-[node name="Logs" type="Node3D" parent="Level"]
-script = ExtResource("20_scatter")
-scenes = Array[PackedScene]([ExtResource("25_log"), ExtResource("33_logb")])
-count = 5
-seed_value = 8812
-area = Vector2(100, 34)
-area_center = Vector3(0, 0, -26)
-min_height = 0.65
-max_height = 2.15
-scale_range = Vector2(0.7, 1.3)
-tilt_deg = 6.0
-
-[node name="Grass" type="Node3D" parent="Level"]
-script = ExtResource("20_scatter")
-scenes = Array[PackedScene]([ExtResource("26_gp"), ExtResource("27_gd")])
-count = 60
-seed_value = 3305
-area = Vector2(112, 40)
-area_center = Vector3(0, 0, -28)
-min_height = 1.25
-max_height = 9.55
-scale_range = Vector2(0.35, 0.8)
-sink = 0.06
-collision = false
-tilt_deg = 5.0
-
-[node name="CoverChairPier" parent="Level" instance=ExtResource("35_cchair")]
-position = Vector3(-1.5, 0.7, 12.6)
-rotation = Vector3(0, 0.13, 0)
-script = ExtResource("36_snap")
-
-[node name="CoverChairA" parent="Level" instance=ExtResource("35_cchair")]
-position = Vector3(-12.5, 1, -24.5)
-rotation = Vector3(0, -0.436332, 0)
-script = ExtResource("36_snap")
-align_to_normal = true
-
-[node name="CoverChairB" parent="Level" instance=ExtResource("35_cchair")]
-position = Vector3(-9, 1, -25.8)
-rotation = Vector3(0, 0.523599, 0)
-script = ExtResource("36_snap")
-align_to_normal = true
