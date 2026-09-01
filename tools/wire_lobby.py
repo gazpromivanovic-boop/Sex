@@ -41,6 +41,11 @@ EXT = [
     ("37_ocean", "Script", "res://addons/ocean3d_lite/ocean_surface.gd"),
     ("38_waves", "Resource", "res://assets/water/bay_waves.tres"),
     ("39_grade", "Compositor", "res://scenes/grade.tres"),
+    ("40_skin", "Script", "res://scripts/ocean_skin.gd"),
+    ("41_wshader", "Shader", "res://assets/shaders/ocean_bay.gdshader"),
+    ("42_wnormal", "Texture2D", "res://assets/water/EA_Water_Normal.tres"),
+    ("43_mist", "Script", "res://scripts/shore_mist.gd"),
+    ("44_under", "Script", "res://scripts/underwater.gd"),
 ]
 
 NODES = """
@@ -54,6 +59,36 @@ far_size = 9000.0
 fair_deep_color = Color(0.02, 0.11, 0.18, 1)
 fair_shallow_color = Color(0.13, 0.42, 0.46, 1)
 fair_roughness = 0.1
+
+[node name="OceanSkin" type="Node" parent="Ocean"]
+script = ExtResource("40_skin")
+shader = ExtResource("41_wshader")
+normal_map = ExtResource("42_wnormal")
+shallow_color = Color(0.44, 0.82, 0.86, 0.55)
+deep_color = Color(0.1, 0.3, 0.5, 0.93)
+shore_glow_color = Color(0.94, 0.98, 1, 1)
+foam_color = Color(0.97, 0.99, 1, 1)
+underwater_color = Color(0.05, 0.24, 0.32, 0.72)
+water_depth = 4.0
+color_bands = 4
+foam_cutoff = 0.55
+caustics_strength = 0.22
+sparkle_boost = 0.25
+
+[node name="ShoreMist" type="GPUParticles3D" parent="."]
+position = Vector3(0, 0.5, 2)
+script = ExtResource("43_mist")
+span = Vector2(150, 22)
+height = 3.5
+mist_color = Color(0.88, 0.74, 0.68, 0.09)
+puff_size = Vector2(6, 15)
+drift = Vector3(0.35, 0.05, 0.12)
+
+[node name="Underwater" type="Node" parent="."]
+script = ExtResource("44_under")
+world_environment = NodePath("../WorldEnvironment")
+fog_color = Color(0.05, 0.21, 0.27, 1)
+fog_density = 0.11
 
 [node name="Boards" type="Node3D" parent="Level"]
 position = Vector3(0, 0.39, -7)

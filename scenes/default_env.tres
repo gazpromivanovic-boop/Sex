@@ -73,4 +73,3 @@ volumetric_fog_sky_affect = 0.0
 adjustment_enabled = true
 adjustment_brightness = 0.95
 adjustment_contrast = 1.1
-adjustment_saturation = 1.0

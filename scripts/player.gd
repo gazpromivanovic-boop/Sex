@@ -147,7 +147,11 @@ extends CharacterBody3D
 ## Насколько кость утоплена в теле, м. Опорные кости — таза и кистей — лежат
 ## внутри меша, поэтому землёй для них считается уровень чуть ниже самой кости:
 ## иначе поза «стоит» на костях и висит над поверхностью.
-@export var pose_ground_offset: float = 0.06
+@export var pose_ground_offset: float = 0.10
+## И сколько добавить сверх этого каждой позе отдельно, м. Общей поправки не
+## хватает: кость — это центр сустава, и лежащее тело опирается не костью, а
+## спиной, до которой ещё половина толщины корпуса. Сидящее — куда меньше.
+@export var pose_sink: Array[float] = [0.0, 0.10]
 ## Доворот модели в позе, градусы по осям, по значению на каждую позу.
 ## Обычно нужен ноль: clip_importer сам считает поправку на разницу рестовых поз.
 ## Это запас на случай, если клип снят настолько иначе, что расчёта не хватило —
@@ -168,14 +172,18 @@ extends CharacterBody3D
 ## И на какой встаёт обратно на ноги. Порог ниже входного намеренно: с одним
 ## порогом на его границе персонаж дёргается между шагом и гребком каждый кадр.
 @export var swim_exit_depth: float = 1.05
-@export var swim_speed: float = 2.1
-@export var swim_accel: float = 5.0
+@export var swim_speed: float = 3.6
+@export var swim_accel: float = 7.0
 ## Насколько тело утоплено, когда держится на воде. Голова должна остаться над
 ## поверхностью, поэтому меньше роста (модель 1.79). При 1.30 персонаж торчал из
 ## воды по пояс. Раньше к этому добавлялась поправка на расхождение: старый
 ## шейдер поднимал поверхность волной выше плоскости меша, а расчёт про волну не
 ## знал. С Ocean3D расхождения нет — высота берётся та же, что рисуется.
 @export var float_depth: float = 1.48
+## И насколько — когда висит на месте и перебирает руками. Глубже, чем на ходу:
+## в этой позе тело стоит вертикально, руки разведены на уровне груди, и при
+## общей глубине они оставались над водой — человек будто стоял по пояс.
+@export var float_depth_idle: float = 1.75
 ## Жёсткость выталкивания к поверхности.
 @export var buoyancy: float = 5.0
 ## Предел вертикальной скорости на плаву: выше него выталкивание не разгоняет.
@@ -538,7 +546,11 @@ func _swim_physics(delta: float) -> void:
 	# Всплытие по пробелу убрано: оно спорило с выталкиванием и выбрасывало тело
 	# над поверхностью, а на границе с мелководьем ещё и переключало плавание на
 	# шаг и обратно каждый кадр. Держаться на воде — задача выталкивания.
-	var want := water_level_at(global_position.x, global_position.z) - float_depth
+	# Глубина посадки зависит от того, гребём мы или висим: те же руки, что на
+	# ходу режут поверхность, на месте должны быть в воде.
+	var stroke: float = anim_tree.get("parameters/SwimBlend/blend_amount")
+	var sink := lerpf(float_depth_idle, float_depth, clampf(stroke, 0.0, 1.0))
+	var want := water_level_at(global_position.x, global_position.z) - sink
 	var lift := (want - global_position.y) * buoyancy
 	velocity.y = clampf(lift, -swim_vertical * 2.5, swim_vertical * 2.5)
 
@@ -1096,7 +1108,10 @@ func _pose_ground_shift() -> float:
 		lowest = minf(lowest, bone_y - base)
 	if is_inf(lowest):
 		return 0.0
-	return clampf(-pose_ground_offset - lowest, -0.6, 0.6)
+	var extra: float = 0.0
+	if pose_index >= 0 and pose_index < pose_sink.size():
+		extra = pose_sink[pose_index]
+	return clampf(-(pose_ground_offset + extra) - lowest, -0.6, 0.6)
 
 
 func _process(delta: float) -> void:
