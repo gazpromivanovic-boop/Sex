@@ -87,26 +87,26 @@ skin_path = NodePath("../OceanSkin")
 size = 230.0
 subdiv = 120
 
-[node name="ShoreMist" type="GPUParticles3D" parent="."]
-position = Vector3(0, 0.5, 2)
+[node name="ShoreMist" type="Node3D" parent="."]
+position = Vector3(0, 0.9, 2)
 script = ExtResource("43_mist")
 span = Vector2(150, 22)
 height = 3.5
-count = 44
+count = 90
 life = 18.0
-mist_color = Color(0.88, 0.74, 0.68, 0.09)
-puff_size = Vector2(6, 15)
+mist_color = Color(0.88, 0.74, 0.68, 0.17)
+puff_size = Vector2(4, 9)
 drift = Vector3(0.35, 0.05, 0.12)
 
-[node name="Motes" type="GPUParticles3D" parent="."]
+[node name="Motes" type="Node3D" parent="."]
 position = Vector3(0, -4.5, 52)
 script = ExtResource("43_mist")
 span = Vector2(130, 95)
 height = 7.0
 count = 240
 life = 26.0
-mist_color = Color(0.72, 0.88, 0.88, 0.055)
-puff_size = Vector2(0.05, 0.22)
+mist_color = Color(0.72, 0.88, 0.88, 0.11)
+puff_size = Vector2(0.06, 0.26)
 drift = Vector3(0.05, 0.1, -0.04)
 
 [node name="Reef" type="Node3D" parent="Level"]
