@@ -330,7 +330,10 @@ def node_name(header):
 
 
 def attr(header, key):
-    match = re.search(r'%s="([^"]+)"' % key, header)
+    # Слева от имени не должно быть буквы: иначе поиск id="..." попадает внутрь
+    # uid="...", возвращает чужое значение, и старая запись не вычищается — в
+    # сцене оказывается два ext_resource с одним идентификатором.
+    match = re.search(r'(?<![\w-])%s="([^"]+)"' % key, header)
     return match.group(1) if match else None
 
 

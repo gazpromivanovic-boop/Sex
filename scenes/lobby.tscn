@@ -15,7 +15,6 @@
 [ext_resource type="Script" uid="uid://vs8dr2i2g6iq" path="res://scripts/ambience.gd" id="14_amb"]
 [ext_resource type="AudioStream" uid="uid://yk5yculywkgo" path="res://assets/audio/surf_loop.wav" id="15_surf"]
 [ext_resource type="AudioStream" uid="uid://dg2qs4yd5povt" path="res://assets/audio/wind_loop.wav" id="16_wind"]
-[ext_resource type="Script" uid="uid://b4hdigfiiit3j" path="res://scripts/shore_mist.gd" id="43_mist"]
 [ext_resource type="Script" path="res://scripts/scatter.gd" id="20_scatter"]
 [ext_resource type="Script" path="res://scripts/row.gd" id="30_row"]
 [ext_resource type="Script" path="res://scripts/ground_snap.gd" id="36_snap"]
