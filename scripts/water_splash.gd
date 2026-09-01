@@ -31,6 +31,7 @@ extends GPUParticles3D
 
 var _body: Node3D
 var _water: Node3D
+var _ocean: Node                          ## автозагрузка Ocean3D, если она есть
 var _last_pos: Vector3
 var _speed: float = 0.0
 
@@ -41,6 +42,7 @@ func _ready() -> void:
 		var found := get_node_or_null(body_path) as Node3D
 		if found != null:
 			_body = found
+	_ocean = get_node_or_null("/root/Ocean")
 	if not water_path.is_empty():
 		_water = get_node_or_null(water_path) as Node3D
 		if _water != null:
@@ -102,9 +104,12 @@ func _physics_process(delta: float) -> void:
 	_last_pos = pos
 	_speed = lerpf(_speed, moved / maxf(delta, 0.0001), clampf(delta * 12.0, 0.0, 1.0))
 
-	# уровень читаем каждый кадр: вода дышит приливом, запомнить его при старте
-	# значило бы, что брызги отстают от берега на полметра
-	if _water != null:
+	# уровень читаем каждый кадр и в той самой точке, где стоит персонаж: вода
+	# ходит волной, и запомненный при старте уровень означал бы, что брызги
+	# рождаются то под водой, то в воздухе
+	if _ocean != null:
+		water_level = _ocean.get_height(pos.x, pos.z)
+	elif _water != null:
 		water_level = _water.global_position.y
 	var depth := water_level - pos.y          # больше нуля — ступни под водой
 	var wading := depth > -0.05 and depth < wade_depth

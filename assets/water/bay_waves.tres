@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="OceanWaveProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/ocean3d_lite/wave_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+waves = Array[Vector3]([Vector3(270, 0.05, 22), Vector3(255, 0.045, 11), Vector3(285, 0.04, 6), Vector3(265, 0.03, 3)])
+storm_scale_max = 3.0

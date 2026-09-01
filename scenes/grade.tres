@@ -1,0 +1,22 @@
+[gd_resource type="Compositor" load_steps=3 format=3]
+
+; Цветокоррекция сцены. Значения в shadows/midtones/highlights — это
+; (тон, сила подкраски, насыщенность, светлота); при силе 0 подкраски нет.
+;
+; Замысел: закат в сцене шёл сплошным оранжевым, и всё в кадре — песок, скалы,
+; персонаж — было одного цвета. Тени уводим в холодный синий, света оставляем
+; тёплыми. Разведённые по температуре тени и света дают объём, которого не даёт
+; ни один источник света.
+
+[ext_resource type="Script" path="res://Compositor/Color grading/ColorGrading.gd" id="1_cg"]
+
+[sub_resource type="CompositorEffect" script_class="ColorGrading" id="Grade"]
+script = ExtResource("1_cg")
+shadows = Vector4(0.62, 0.12, 1.05, 1.02)
+midtones = Vector4(0.09, 0.03, 1.08, 1.0)
+highlights = Vector4(0.08, 0.07, 1.0, 1.02)
+sh_ranges = Vector4(0.0, 0.22, 0.72, 1.0)
+vibrance_post = Vector3(1.0, 1.0, 1.0)
+
+[resource]
+compositor_effects = Array[CompositorEffect]([SubResource("Grade")])

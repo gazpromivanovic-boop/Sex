@@ -172,8 +172,9 @@ extends CharacterBody3D
 @export var swim_accel: float = 5.0
 ## Насколько тело утоплено, когда держится на воде. Голова должна остаться над
 ## поверхностью, поэтому меньше роста (модель 1.79). При 1.30 персонаж торчал из
-## воды по пояс: шейдер воды поднимает поверхность волной выше плоскости меша, и
-## расчётный уровень оказывается ниже видимого сантиметров на тридцать.
+## воды по пояс. Раньше к этому добавлялась поправка на расхождение: старый
+## шейдер поднимал поверхность волной выше плоскости меша, а расчёт про волну не
+## знал. С Ocean3D расхождения нет — высота берётся та же, что рисуется.
 @export var float_depth: float = 1.48
 ## Жёсткость выталкивания к поверхности.
 @export var buoyancy: float = 5.0
@@ -229,7 +230,8 @@ var turning_in_place: bool = false
 var sprinting: bool = false           ## бежим ли сейчас (для анимации и обзора)
 var swimming: bool = false            ## персонаж на плаву
 var swim_node: AnimationNodeAnimation ## узел дерева для клипа плавания
-var _water: Node3D                    ## поверхность воды, ищется по группе
+var _water: Node3D                    ## запасная плоскость воды, ищется по группе
+var _ocean: Node                      ## автозагрузка Ocean3D, если она есть
 var _swim_ready: bool = false
 var move_dir: Vector3 = Vector3.ZERO  ## куда просят идти, в мировых осях
 var move_amount: float = 0.0          ## насколько отклонён стик, 0..1
@@ -479,9 +481,13 @@ func _handle_pose_input() -> void:
 
 ## Переносит клипы плавания и находит поверхность воды.
 ##
-## Вода ищется по группе, а не задаётся путём: контроллер один на все сцены, и
-## на полигоне воды нет вовсе. Нет узла в группе — плавание просто выключено.
+## Воду ищем двумя путями и ни один не требуем. Сначала автозагрузка Ocean3D:
+## она отдаёт высоту волны в конкретной точке, и тело качается ровно на той
+## воде, которую видно. Если её нет — плоскость из группы «water». Ни того ни
+## другого (на полигоне воды нет вовсе) — плавание просто выключено. Жёсткая
+## зависимость от аддона тут не нужна: контроллер один на все сцены.
 func _setup_swim() -> void:
+	_ocean = get_node_or_null("/root/Ocean")
 	_water = get_tree().get_first_node_in_group("water") as Node3D
 	if anim_player == null or skeleton == null:
 		return
@@ -497,14 +503,21 @@ func _setup_swim() -> void:
 			continue
 		if ClipImporter.add_clip(anim_player, skeleton, scene, names[i], loops[i]):
 			loaded += 1
-	_swim_ready = loaded >= 2 and _water != null
+	_swim_ready = loaded >= 2 and (_ocean != null or _water != null)
+
+
+## Высота поверхности воды над точкой. Далеко ниже всего — воды тут нет.
+func water_level_at(x: float, z: float) -> float:
+	if _ocean != null:
+		return _ocean.get_height(x, z)
+	if _water != null:
+		return _water.global_position.y
+	return -1000.0
 
 
 ## Глубина под подошвами: больше нуля — стоим в воде.
 func water_depth() -> float:
-	if _water == null:
-		return -1000.0
-	return _water.global_position.y - global_position.y
+	return water_level_at(global_position.x, global_position.z) - global_position.y
 
 
 ## Пока плывём: гравитации нет, тело выталкивается к поверхности, движение идёт
@@ -525,7 +538,7 @@ func _swim_physics(delta: float) -> void:
 	# Всплытие по пробелу убрано: оно спорило с выталкиванием и выбрасывало тело
 	# над поверхностью, а на границе с мелководьем ещё и переключало плавание на
 	# шаг и обратно каждый кадр. Держаться на воде — задача выталкивания.
-	var want := _water.global_position.y - float_depth
+	var want := water_level_at(global_position.x, global_position.z) - float_depth
 	var lift := (want - global_position.y) * buoyancy
 	velocity.y = clampf(lift, -swim_vertical * 2.5, swim_vertical * 2.5)
 

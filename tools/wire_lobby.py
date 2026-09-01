@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Досборка scenes/lobby.tscn: разброс, ряды, реквизит, прилив и звук.
+"""Досборка scenes/lobby.tscn: океан, разброс, ряды, реквизит, свет и звук.
 
 Почему скриптом, а не руками в редакторе. Открытый Godot держит сцену в памяти
 и при своём сохранении откатывает файл к этой копии — правки .tscn текстом
@@ -25,7 +25,6 @@ SCENE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
 EXT = [
     ("20_scatter", "Script", "res://scripts/scatter.gd"),
     ("30_row", "Script", "res://scripts/row.gd"),
-    ("31_tide", "Script", "res://scripts/tide.gd"),
     ("36_snap", "Script", "res://scripts/ground_snap.gd"),
     ("21_ra", "PackedScene", "res://assets/models/rock_a.glb"),
     ("22_rb", "PackedScene", "res://assets/models/rock_b.glb"),
@@ -37,12 +36,25 @@ EXT = [
     ("27_gd", "PackedScene", "res://assets/models/grass_dry.glb"),
     ("28_lamp", "PackedScene", "res://assets/models/lamp.glb"),
     ("29_tile", "PackedScene", "res://assets/models/tile.glb"),
-    ("32_fence", "PackedScene", "res://assets/models/fence.glb"),
     ("35_cchair", "PackedScene", "res://assets/models/cover_chair.glb"),
     ("34_sea", "AudioStream", "res://assets/audio/sea_gulls.mp3"),
+    ("37_ocean", "Script", "res://addons/ocean3d_lite/ocean_surface.gd"),
+    ("38_waves", "Resource", "res://assets/water/bay_waves.tres"),
+    ("39_grade", "Compositor", "res://scenes/grade.tres"),
 ]
 
 NODES = """
+[node name="Ocean" type="Node3D" parent="."]
+script = ExtResource("37_ocean")
+wave_profile = ExtResource("38_waves")
+tile_size = 260.0
+disp_fade_start = 90.0
+disp_fade_end = 126.0
+far_size = 9000.0
+fair_deep_color = Color(0.02, 0.11, 0.18, 1)
+fair_shallow_color = Color(0.13, 0.42, 0.46, 1)
+fair_roughness = 0.1
+
 [node name="Boards" type="Node3D" parent="Level"]
 position = Vector3(0, 0.39, -7)
 script = ExtResource("30_row")
@@ -85,8 +97,8 @@ count = 14
 seed_value = 4471
 area = Vector2(116, 46)
 area_center = Vector3(0, 0, -24)
-min_height = -1.4
-max_height = 0.4
+min_height = -0.85
+max_height = 0.95
 scale_range = Vector2(0.35, 1.2)
 sink = 0.32
 
@@ -97,8 +109,8 @@ count = 40
 seed_value = 6120
 area = Vector2(118, 22)
 area_center = Vector3(0, 0, -8)
-min_height = -1.6
-max_height = 0.6
+min_height = -1.05
+max_height = 1.15
 scale_range = Vector2(0.05, 0.16)
 sink = 0.04
 collision = false
@@ -110,8 +122,8 @@ count = 5
 seed_value = 8812
 area = Vector2(100, 34)
 area_center = Vector3(0, 0, -26)
-min_height = 0.1
-max_height = 1.6
+min_height = 0.65
+max_height = 2.15
 scale_range = Vector2(0.7, 1.3)
 tilt_deg = 6.0
 
@@ -122,38 +134,12 @@ count = 60
 seed_value = 3305
 area = Vector2(112, 40)
 area_center = Vector3(0, 0, -28)
-min_height = 0.7
-max_height = 9.0
+min_height = 1.25
+max_height = 9.55
 scale_range = Vector2(0.35, 0.8)
 sink = 0.06
 collision = false
 tilt_deg = 5.0
-
-[node name="Fence" type="Node3D" parent="Level"]
-position = Vector3(-27, 0, -34)
-rotation = Vector3(0, 0.261799, 0)
-script = ExtResource("30_row")
-scene = ExtResource("32_fence")
-count = 9
-spacing = 2.82
-base_rotation = Vector3(0, 90, 0)
-snap_to_ground = true
-jitter = Vector2(0.12, 0.06)
-yaw_jitter = 5.0
-roll_jitter = 3.0
-
-[node name="FenceRuins" type="Node3D" parent="Level"]
-position = Vector3(21, 0, -31)
-rotation = Vector3(0, -0.610865, 0)
-script = ExtResource("30_row")
-scene = ExtResource("32_fence")
-count = 4
-spacing = 3.6
-base_rotation = Vector3(0, 90, 0)
-snap_to_ground = true
-jitter = Vector2(0.4, 0.1)
-yaw_jitter = 14.0
-roll_jitter = 9.0
 
 [node name="CoverChairPier" parent="Level" instance=ExtResource("35_cchair")]
 position = Vector3(-1.5, 0.7, 12.6)
@@ -173,13 +159,28 @@ script = ExtResource("36_snap")
 align_to_normal = true
 """
 
+# Убрать из сцены и не возвращать. Water и WaterFar заменил океан, забор убран
+# по просьбе: ряд каменных секций читался цепочкой валунов.
+DROP = {"Water", "WaterFar", "Fence", "FenceRuins"}
+
+# Замены отдельных строк, до которых секционному разбору не дотянуться: у
+# подресурсов нет имени, а материал песка знает уровень воды, и он переехал.
+REPLACE = [
+    ("shader_parameter/water_level = -0.55", "shader_parameter/water_level = 0.0"),
+]
+
 # Правки узлов, которые скрипту не принадлежат: их держит редактор, мы лишь
 # дописываем свойства.
 PATCH = {
-    "Water": {
-        "groups": ["water"],
-        "props": [("script", 'ExtResource("31_tide")'),
-                  ("far_water", 'NodePath("../WaterFar")')],
+    "WorldEnvironment": {
+        "props": [("compositor", 'ExtResource("39_grade")')],
+    },
+    # Ocean3D жёстко держит море на мировом нуле — таково его условие. Чтобы
+    # береговая линия осталась там же, где была, поднимаем на 0.55 не воду, а
+    # весь уровень: раньше вода стояла ровно настолько ниже нуля рельефа.
+    "Level": {
+        "props": [("transform",
+                   "Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)")],
     },
     "Ambience": {
         # Синтезированные крики больше не нужны: их закрывает живая запись.
@@ -237,7 +238,7 @@ def main():
         if header.startswith("[ext_resource"):
             if attr(header, "id") in mine_ids or attr(header, "path") in mine_paths:
                 continue
-        elif re.sub(r"\d+$", "", node_name(header) or "") in mine_nodes:
+        elif re.sub(r"\d+$", "", node_name(header) or "") in mine_nodes | DROP:
             # Редактор дописывает цифру к имени при столкновении: CoverChairA2.
             # Такой хвост — тоже наш узел, иначе дубли копятся в сцене.
             continue
@@ -270,8 +271,10 @@ def main():
                            % (kind, path, ident))
             out.append("")
 
-    io.open(SCENE, "w", encoding="utf-8", newline="").write(
-        "\n".join(out).rstrip("\n") + "\n" + NODES)
+    text = "\n".join(out).rstrip("\n") + "\n" + NODES
+    for old, new in REPLACE:
+        text = text.replace(old, new)
+    io.open(SCENE, "w", encoding="utf-8", newline="").write(text)
     print("вписано: ресурсов %d, узлов %d" % (len(EXT), len(mine_nodes)))
 
 
