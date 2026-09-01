@@ -15,6 +15,10 @@ extends Node3D
 @export var scenes: Array[PackedScene] = []
 @export var count: int = 40
 @export var seed_value: int = 12345
+## Оставлять ли копиям физические тела. Валуну и бревну коллизия нужна, траве,
+## гальке и доскам настила — нет: игрок цепляется за них, и экран дёргается.
+@export var collision: bool = true
+
 
 @export_group("Где")
 ## Прямоугольник в плоскости XZ, в котором ищем места, метры.
@@ -95,6 +99,8 @@ func build() -> void:
 			continue
 
 		var inst := scenes[rng.randi() % scenes.size()].instantiate() as Node3D
+		if not collision:
+			Props.strip_collision(inst)
 		add_child(inst)
 		inst.global_position = point - Vector3.UP * sink
 		var s := rng.randf_range(scale_range.x, scale_range.y)

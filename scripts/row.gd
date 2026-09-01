@@ -15,6 +15,10 @@ extends Node3D
 ## Шаг между копиями вдоль оси Z узла, метры.
 @export var spacing: float = 1.0
 @export var seed_value: int = 991
+## Оставлять ли копиям физические тела. Валуну и бревну коллизия нужна, траве,
+## гальке и доскам настила — нет: игрок цепляется за них, и экран дёргается.
+@export var collision: bool = true
+
 ## Разворот каждой копии, градусы. Доска настила лежит длинной стороной поперёк
 ## пирса, а ряд идёт вдоль — без этого её пришлось бы разворачивать в модели.
 @export var base_rotation: Vector3 = Vector3.ZERO
@@ -79,6 +83,8 @@ func build() -> void:
 
 	for i in spots.size():
 		var inst := scene.instantiate() as Node3D
+		if not collision:
+			Props.strip_collision(inst)
 		add_child(inst)
 		inst.global_position = spots[i]
 		inst.rotation = turns[i]

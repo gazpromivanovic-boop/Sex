@@ -71,6 +71,11 @@ extends CharacterBody3D
 ## на кромку, а контакт с кромкой круче floor_max_angle — Godot считает его
 ## стеной и сталкивает персонажа обратно вниз.
 @export var step_forward_reach: float = 0.05
+## Насколько ровной должна быть площадка наверху, градусы. Отдельно от
+## floor_max_angle и заметно строже: по тому порогу подходит и бок валуна, и
+## персонаж лезет на камень, тут же с него соскальзывает и лезет снова — каждый
+## кадр. У ступеньки лестницы наклон нулевой, ей запас не нужен.
+@export var step_max_slope_deg: float = 25.0
 ## Предел замедления на лестнице. Само замедление считается по глубине проступи,
 ## это только страховка от слишком мелких ступеней.
 @export var stair_speed_min: float = 0.55
@@ -881,8 +886,8 @@ func _find_step_top(from: Transform3D, motion: Vector3) -> bool:
 
 	if hit == null:
 		return false                            # под ногой пусто: это край, а не ступенька
-	if hit.get_normal().angle_to(Vector3.UP) > floor_max_angle:
-		return false                            # площадка слишком крутая, чтобы стоять
+	if hit.get_normal().angle_to(Vector3.UP) > deg_to_rad(step_max_slope_deg):
+		return false                            # площадка покатая: встать не выйдет
 	return _step_top.y - from.origin.y > 0.005
 
 

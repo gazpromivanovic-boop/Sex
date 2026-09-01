@@ -44,12 +44,13 @@ EXT = [
 
 NODES = """
 [node name="Boards" type="Node3D" parent="Level"]
-position = Vector3(0, 0.52, -7)
+position = Vector3(0, 0.39, -7)
 script = ExtResource("30_row")
 scene = ExtResource("29_tile")
 count = 26
 spacing = 1.07
 base_rotation = Vector3(0, 90, 0)
+collision = false
 
 [node name="LampA" parent="Level" instance=ExtResource("28_lamp")]
 position = Vector3(2.15, 0.55, 2)
@@ -87,6 +88,7 @@ area_center = Vector3(0, 0, -24)
 min_height = -1.4
 max_height = 0.4
 scale_range = Vector2(0.35, 1.2)
+sink = 0.32
 
 [node name="Pebbles" type="Node3D" parent="Level"]
 script = ExtResource("20_scatter")
@@ -99,6 +101,7 @@ min_height = -1.6
 max_height = 0.6
 scale_range = Vector2(0.05, 0.16)
 sink = 0.04
+collision = false
 
 [node name="Logs" type="Node3D" parent="Level"]
 script = ExtResource("20_scatter")
@@ -123,6 +126,7 @@ min_height = 0.7
 max_height = 9.0
 scale_range = Vector2(0.35, 0.8)
 sink = 0.06
+collision = false
 tilt_deg = 5.0
 
 [node name="Fence" type="Node3D" parent="Level"]
