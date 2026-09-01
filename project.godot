@@ -16,6 +16,10 @@ run/main_scene="res://scenes/lobby.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
+[autoload]
+
+Ocean="*res://addons/ocean3d_lite/ocean.gd"
+
 [display]
 
 window/size/viewport_width=1600
@@ -23,16 +27,8 @@ window/size/viewport_height=900
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
-[autoload]
-
-; Ocean3D Lite: одна и та же сумма волн Герстнера считается тут для физики и в
-; шейдере для картинки, поэтому тело качается ровно на той воде, которую видно.
-Ocean="*res://addons/ocean3d_lite/ocean.gd"
-
 [editor_plugins]
 
-; world_brush намеренно не включён: это редакторская кисть для расстановки, она
-; вешает свою панель и сейчас не нужна. Включить — дописать сюда его plugin.cfg.
 enabled=PackedStringArray("res://addons/Color grading/plugin.cfg", "res://addons/ocean3d_lite/plugin.cfg")
 
 [input]
