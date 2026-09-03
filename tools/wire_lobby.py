@@ -164,8 +164,15 @@ facing_offset_deg = 180.0
 [node name="Underwater" type="Node" parent="."]
 script = ExtResource("44_under")
 world_environment = NodePath("../WorldEnvironment")
+sun_path = NodePath("../Sun")
 fog_color = Color(0.05, 0.21, 0.27, 1)
-fog_density = 0.11
+fog_density = 0.05
+volume_density = 0.04
+deep_color = Color(0.04, 0.2, 0.28, 1)
+absorb = Vector3(0.32, 0.09, 0.045)
+shaft_strength = 0.55
+caustics_strength = 0.35
+wobble = 0.0035
 
 [node name="Boards" type="Node3D" parent="Level"]
 position = Vector3(0, 0.39, -7)
